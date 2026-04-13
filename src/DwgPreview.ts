@@ -1,5 +1,3 @@
-import * as fs from 'fs';
-
 export class DwgPreview {
 	public readonly code: DwgPreview.PreviewType;
 	public readonly rawHeader: Uint8Array;
@@ -13,7 +11,7 @@ export class DwgPreview {
 		this.rawImage = rawImage ?? new Uint8Array(0);
 	}
 
-	public save(path: string): void {
+	public toBytes(): Uint8Array {
 		let writeHeader = false;
 
 		switch (this.code) {
@@ -31,11 +29,10 @@ export class DwgPreview {
 			const data = new Uint8Array(this.rawHeader.length + this.rawImage.length);
 			data.set(this.rawHeader);
 			data.set(this.rawImage, this.rawHeader.length);
-			fs.writeFileSync(path, data);
-			return;
+			return data;
 		}
 
-		fs.writeFileSync(path, this.rawImage);
+		return this.rawImage.slice();
 	}
 }
 
