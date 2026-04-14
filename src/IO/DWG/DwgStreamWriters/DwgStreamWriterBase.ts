@@ -7,6 +7,7 @@ import { CadUtils } from '../../../CadUtils.js';
 import { DwgReferenceType } from '../../../Types/DwgReferenceType.js';
 import { IHandledCadObject } from '../../../IHandledCadObject.js';
 import { IDwgStreamWriter } from './IDwgStreamWriter.js';
+import { encodeCadString } from '../../TextEncoding.js';
 
 // Factory registration for breaking circular dependency
 type WriterFactory = new (stream: Uint8Array, encoding: string) => IDwgStreamWriter;
@@ -290,8 +291,7 @@ export abstract class DwgStreamWriterBase implements IDwgStreamWriter {
 			return;
 		}
 
-		const encoder = new TextEncoder();
-		const bytes = encoder.encode(value);
+		const bytes = encodeCadString(value, this.encoding);
 		this.writeBitShort(bytes.length);
 		this.writeBytes(bytes);
 	}

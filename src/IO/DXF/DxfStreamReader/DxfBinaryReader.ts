@@ -42,7 +42,7 @@ export class DxfBinaryReader extends DxfStreamReaderBase {
       bytes.push(b);
     }
 
-    this.ValueRaw = String.fromCharCode(...bytes);
+    this.ValueRaw = this.decodeString(new Uint8Array(bytes));
     this.Position = this._pos;
     return this.ValueRaw;
   }

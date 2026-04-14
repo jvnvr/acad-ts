@@ -5,6 +5,7 @@ import { BlockRecord } from '../Tables/BlockRecord.js';
 import { CadWriterConfiguration } from './CadWriterConfiguration.js';
 import { ICadWriter } from './ICadWriter.js';
 import { NotificationEventHandler, NotificationEventArgs, NotificationType } from './NotificationEventHandler.js';
+import { getDocumentCodePageName } from './TextEncoding.js';
 
 export abstract class CadWriterBase<T extends CadWriterConfiguration, TStream = ArrayBuffer | Uint8Array> implements ICadWriter {
 	OnNotification: NotificationEventHandler | null = null;
@@ -45,13 +46,11 @@ export abstract class CadWriterBase<T extends CadWriterConfiguration, TStream = 
 			}
 		}
 
-		this._encoding = this.getListedEncoding(this._document.header.CodePage);
+			this._encoding = this.getListedEncoding(this._document.header.codePage);
 	}
 
-	protected getListedEncoding(codePage: string): string {
-		const code = CadUtils.getCodePage(codePage);
-		// Simplified encoding lookup for TypeScript
-		return 'utf-8';
+	protected getListedEncoding(codePage: string | null | undefined): string {
+			return getDocumentCodePageName(codePage);
 	}
 
 	protected triggerNotification(message: string, notificationType: NotificationType, ex?: Error | null): void;

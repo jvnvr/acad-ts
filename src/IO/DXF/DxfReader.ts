@@ -25,6 +25,7 @@ import { GroupCodeValue, GroupCodeValueType } from '../../GroupCodeValue.js';
 import { Entity } from '../../Entities/Entity.js';
 import { NotificationEventHandler, NotificationType } from '../NotificationEventHandler.js';
 import { CadNotSupportedException } from '../../Exceptions/CadNotSupportedException.js';
+import { getDecoderEncodingLabel } from '../TextEncoding.js';
 
 export class DxfReader extends CadReaderBase<DxfReaderConfiguration> {
   private _version: ACadVersion = ACadVersion.Unknown;
@@ -188,6 +189,11 @@ export class DxfReader extends CadReaderBase<DxfReaderConfiguration> {
 
       try {
         header.SetValue(currVar, parameters);
+
+        if (currVar === '$DWGCODEPAGE') {
+          this._encoding = getDecoderEncodingLabel(header.codePage);
+          this._reader.encoding = this._encoding;
+        }
       } catch (ex) {
         this.triggerNotification(
           `Invalid value for header variable ${currVar} | ${parameters[0]}`,
@@ -334,6 +340,7 @@ export class DxfReader extends CadReaderBase<DxfReaderConfiguration> {
 
   private getReader(): IDxfStreamReader {
     this._version = ACadVersion.Unknown;
+    this._encoding = getDecoderEncodingLabel('ANSI_1252');
 
     const stream = this.fileStream;
     const isBinary = DxfReader.IsBinaryStream(stream);
@@ -360,9 +367,6 @@ export class DxfReader extends CadReaderBase<DxfReaderConfiguration> {
       if (tmpReader.ValueAsString === '$ACADVER') {
         tmpReader.ReadNext();
         this._version = CadUtils.getVersionFromName(tmpReader.ValueAsString);
-        if (this._version >= ACadVersion.AC1021) {
-          break;
-        }
 
         if (this._version < ACadVersion.AC1002) {
           if (this._version === ACadVersion.Unknown) {
@@ -371,6 +375,10 @@ export class DxfReader extends CadReaderBase<DxfReaderConfiguration> {
             throw new CadNotSupportedException(this._version);
           }
         }
+      } else if (tmpReader.ValueAsString === '$DWGCODEPAGE') {
+        tmpReader.ReadNext();
+        this._encoding = getDecoderEncodingLabel(tmpReader.ValueAsString);
+        tmpReader.encoding = this._encoding;
       }
 
       tmpReader.ReadNext();
@@ -397,16 +405,20 @@ export class DxfReader extends CadReaderBase<DxfReaderConfiguration> {
 
   private createReader(isBinary: boolean, isAC1009Format: boolean): IDxfStreamReader {
     const stream = this.fileStream;
+    let reader: IDxfStreamReader;
 
     if (isBinary) {
       if (isAC1009Format) {
-        return new DxfBinaryReaderAC1009(stream);
+        reader = new DxfBinaryReaderAC1009(stream);
       } else {
-        return new DxfBinaryReader(stream);
+        reader = new DxfBinaryReader(stream);
       }
     } else {
-      return new DxfTextReader(stream);
+      reader = new DxfTextReader(stream);
     }
+
+    reader.encoding = this._encoding;
+    return reader;
   }
 
   protected createDefaultConfiguration(): any { return {}; }

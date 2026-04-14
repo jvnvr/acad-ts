@@ -2,6 +2,8 @@ import { DxfCode } from '../../../DxfCode.js';
 import { GroupCodeValueType } from '../../../GroupCodeValue.js';
 
 export interface IDxfStreamReader {
+  encoding: string;
+
   DxfCode: DxfCode;
 
   GroupCodeValue: GroupCodeValueType;

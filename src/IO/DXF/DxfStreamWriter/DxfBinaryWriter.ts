@@ -1,5 +1,6 @@
 import { DxfStreamWriterBase } from './DxfStreamWriterBase.js';
 import { GroupCodeValue, GroupCodeValueType } from '../../../GroupCodeValue.js';
+import { encodeCadString } from '../../TextEncoding.js';
 
 export class DxfBinaryWriter extends DxfStreamWriterBase {
   public static readonly SentinelBytes: Uint8Array = new Uint8Array([
@@ -11,11 +12,13 @@ export class DxfBinaryWriter extends DxfStreamWriterBase {
   private _writer: DataView;
   private _buffer: Uint8Array;
   private _position: number = 0;
+  private readonly _encoding: string;
   private _stream: { write(data: Uint8Array): void; flush?(): void; close?(): void };
 
-  public constructor(stream: { write(data: Uint8Array): void; flush?(): void; close?(): void }) {
+  public constructor(stream: { write(data: Uint8Array): void; flush?(): void; close?(): void }, encoding: string) {
     super();
     this._stream = stream;
+    this._encoding = encoding;
     this._buffer = new Uint8Array(65536);
     this._writer = new DataView(this._buffer.buffer);
 
@@ -55,7 +58,7 @@ export class DxfBinaryWriter extends DxfStreamWriterBase {
       case GroupCodeValueType.Comment:
       case GroupCodeValueType.ExtendedDataString: {
         const str = `${value}`;
-        const encoded = new TextEncoder().encode(str);
+        const encoded = encodeCadString(str, this._encoding);
         this.ensureCapacity(encoded.length + 1);
         this._buffer.set(encoded, this._position);
         this._position += encoded.length;

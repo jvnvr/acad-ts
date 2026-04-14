@@ -157,6 +157,7 @@ import { AttributeType } from '../../../Entities/AttributeBase.js';
 import { OrthographicType } from '../../../Types/OrthographicType.js';
 import { GroupCodeValueType } from '../../../GroupCodeValueType.js';
 import { AnnotScaleObjectContextData } from '../../../Objects/AnnotScaleObjectContextData.js';
+import { encodeCadString, encodeUtf16Le } from '../../TextEncoding.js';
 
 export class DwgObjectWriter extends DwgSectionIO {
 	override get SectionName(): string { return DwgSectionDefinition.AcDbObjects; }
@@ -1305,7 +1306,7 @@ export class DwgObjectWriter extends DwgSectionIO {
 					const encodingIndex = CadUtils.getCodeIndex(CadUtils.getCodePage(this._writer.encoding));
 					const textBytes = this.encodeText(record.value || '');
 					const buf = new ArrayBuffer(2);
-					new DataView(buf).setUint16(0, record.value.length, true);
+					new DataView(buf).setUint16(0, textBytes.length, true);
 					const lenBytes = new Uint8Array(buf);
 					chunks.push(lenBytes[0], lenBytes[1]);
 					chunks.push(encodingIndex);
@@ -3589,31 +3590,20 @@ export class DwgObjectWriter extends DwgSectionIO {
 			const codeIndex = CadUtils.getCodeIndex(CadUtils.getCodePage(this._writer.encoding));
 			chunks.push(codeIndex);
 		} else {
-			const len = text.length;
+			const bytes = this.encodeText(text);
+			const len = bytes.length;
 			chunks.push(len & 0xFF, (len >> 8) & 0xFF);
 			const codeIndex = CadUtils.getCodeIndex(CadUtils.getCodePage(this._writer.encoding));
 			chunks.push(codeIndex);
-			const bytes = this.encodeText(text);
 			for (let i = 0; i < bytes.length; i++) chunks.push(bytes[i]);
 		}
 	}
 
 	private encodeUtf16LE(text: string): Uint8Array {
-		const buf = new Uint8Array(text.length * 2);
-		for (let i = 0; i < text.length; i++) {
-			const code = text.charCodeAt(i);
-			buf[i * 2] = code & 0xFF;
-			buf[i * 2 + 1] = (code >> 8) & 0xFF;
-		}
-		return buf;
+		return encodeUtf16Le(text);
 	}
 
 	private encodeText(text: string): Uint8Array {
-		// Simple ASCII encoding; for full codepage support, extend as needed
-		const buf = new Uint8Array(text.length);
-		for (let i = 0; i < text.length; i++) {
-			buf[i] = text.charCodeAt(i) & 0xFF;
-		}
-		return buf;
+		return encodeCadString(text, this._writer.encoding);
 	}
 }

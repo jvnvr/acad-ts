@@ -9,6 +9,7 @@ import { ACadVersion } from '../../../src/ACadVersion.js';
 import { Line } from '../../../src/Entities/Line.js';
 import { Point } from '../../../src/Entities/Point.js';
 import { Arc } from '../../../src/Entities/Arc.js';
+import { Layer } from '../../../src/Tables/Layer.js';
 
 const versions = [
   ACadVersion.AC1012,
@@ -62,6 +63,24 @@ class InMemoryBinaryStream {
     }
     return merged;
   }
+}
+
+function containsByteSequence(data: Uint8Array, sequence: number[]): boolean {
+  for (let i = 0; i <= data.length - sequence.length; i++) {
+    let matched = true;
+    for (let j = 0; j < sequence.length; j++) {
+      if (data[i + j] !== sequence[j]) {
+        matched = false;
+        break;
+      }
+    }
+
+    if (matched) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 function isKnownDxfReadGap(error: unknown): boolean {
@@ -149,6 +168,43 @@ describe('DxfWriterTests', () => {
       const data = stream.toUint8Array();
 
       fs.writeFileSync(outPath, data);
+    });
+
+    it('WriteAsciiAnsi1252SpecialChars', () => {
+      if (version < ACadVersion.AC1015) return;
+
+      const doc = new CadDocument();
+      if (doc.header) {
+        doc.header.version = version;
+        doc.header.codePage = 'ANSI_1252';
+      }
+
+      doc.layers.add(new Layer('layer-säöü'));
+
+      const output = new Uint8Array(1024 * 1024);
+      const writer = new DxfWriter(output, doc, false);
+      writer.Write();
+
+      expect(containsByteSequence(output, [0x6C, 0x61, 0x79, 0x65, 0x72, 0x2D, 0x73, 0xE4, 0xF6, 0xFC])).toBe(true);
+    });
+
+    it('WriteBinaryAnsi1252SpecialChars', () => {
+      if (version < ACadVersion.AC1015) return;
+
+      const doc = new CadDocument();
+      if (doc.header) {
+        doc.header.version = version;
+        doc.header.codePage = 'ANSI_1252';
+      }
+
+      doc.layers.add(new Layer('layer-säöü'));
+
+      const stream = new InMemoryBinaryStream();
+      const writer = new DxfWriter(stream as any, doc, true);
+      writer.Write();
+      const data = stream.toUint8Array();
+
+      expect(containsByteSequence(data, [0x6C, 0x61, 0x79, 0x65, 0x72, 0x2D, 0x73, 0xE4, 0xF6, 0xFC])).toBe(true);
     });
   });
 });

@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { getDxfAsciiFiles, getDxfBinaryFiles, readFileAsUint8Array } from '../../testHelpers.js';
 import { DxfReader } from '../../../src/IO/DXF/DxfReader.js';
 import { ACadVersion } from '../../../src/ACadVersion.js';
+import { DxfBinaryReader } from '../../../src/IO/DXF/DxfStreamReader/DxfBinaryReader.js';
+import { encodeCadString, getDecoderEncodingLabel } from '../../../src/IO/TextEncoding.js';
 
 const dxfAsciiFiles = getDxfAsciiFiles();
 const dxfBinaryFiles = getDxfBinaryFiles();
@@ -16,7 +18,110 @@ function isLegacyAc1009Binary(path: string): boolean {
   return path.toLowerCase().includes('sample_ac1009_binary.dxf');
 }
 
+function createAsciiDxf(lines: string[], encoding: string): Uint8Array {
+  return encodeCadString(lines.join('\r\n') + '\r\n', encoding);
+}
+
+function createBinaryDxf(encoding: string): Uint8Array {
+  const bytes: number[] = Array.from(DxfBinaryReader.SentinelBytes);
+
+  const pushCode = (code: number): void => {
+    bytes.push(code & 0xFF, (code >> 8) & 0xFF);
+  };
+
+  const pushString = (value: string): void => {
+    const encoded = encodeCadString(value, encoding);
+    for (const byte of encoded) {
+      bytes.push(byte);
+    }
+    bytes.push(0);
+  };
+
+  const pushShort = (value: number): void => {
+    const normalized = value < 0 ? value + 0x10000 : value;
+    bytes.push(normalized & 0xFF, (normalized >> 8) & 0xFF);
+  };
+
+  const writePair = (code: number, value: string | number): void => {
+    pushCode(code);
+    if (typeof value === 'string') {
+      pushString(value);
+    } else {
+      pushShort(value);
+    }
+  };
+
+  writePair(0, 'SECTION');
+  writePair(2, 'HEADER');
+  writePair(9, '$ACADVER');
+  writePair(1, 'AC1015');
+  writePair(9, '$DWGCODEPAGE');
+  writePair(3, 'ANSI_1252');
+  writePair(0, 'ENDSEC');
+  writePair(0, 'SECTION');
+  writePair(2, 'TABLES');
+  writePair(0, 'TABLE');
+  writePair(2, 'LAYER');
+  writePair(70, 1);
+  writePair(0, 'LAYER');
+  writePair(2, 'layer-säöü');
+  writePair(70, 0);
+  writePair(62, 7);
+  writePair(6, 'CONTINUOUS');
+  writePair(0, 'ENDTAB');
+  writePair(0, 'ENDSEC');
+  writePair(0, 'EOF');
+
+  return Uint8Array.from(bytes);
+}
+
 describe('DxfReaderTests', () => {
+  it('ReadAsciiAnsi1252SpecialChars', () => {
+    const data = createAsciiDxf([
+      '0', 'SECTION',
+      '2', 'HEADER',
+      '9', '$ACADVER',
+      '1', 'AC1015',
+      '9', '$DWGCODEPAGE',
+      '3', 'ANSI_1252',
+      '9', '$LASTSAVEDBY',
+      '1', 'Jörg säöü',
+      '0', 'ENDSEC',
+      '0', 'SECTION',
+      '2', 'TABLES',
+      '0', 'TABLE',
+      '2', 'LAYER',
+      '70', '2',
+      '0', 'LAYER',
+      '2', '0',
+      '70', '0',
+      '62', '7',
+      '6', 'CONTINUOUS',
+      '0', 'LAYER',
+      '2', 'layer-säöü',
+      '70', '0',
+      '62', '7',
+      '6', 'CONTINUOUS',
+      '0', 'ENDTAB',
+      '0', 'ENDSEC',
+      '0', 'EOF',
+    ], 'ANSI_1252');
+
+    const reader = new DxfReader(data);
+    const streamReader = (reader as any).getReader();
+
+    expect(streamReader.encoding).toBe(getDecoderEncodingLabel('ANSI_1252'));
+    expect(streamReader.Find('layer-säöü')).toBe(true);
+  });
+
+  it('ReadBinaryAnsi1252SpecialChars', () => {
+    const reader = new DxfReader(createBinaryDxf('ANSI_1252'));
+    const streamReader = (reader as any).getReader();
+
+    expect(streamReader.encoding).toBe(getDecoderEncodingLabel('ANSI_1252'));
+    expect(streamReader.Find('layer-säöü')).toBe(true);
+  });
+
   describe.each(dxfAsciiFiles.map(f => [f.fileName, f]))('ASCII: %s', (_name, test) => {
     it('ReadHeaderAscii', () => {
       const data = readFileAsUint8Array(test.path);

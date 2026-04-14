@@ -41,6 +41,8 @@ const doc = reader.Read();
 
 Reads DXF files in both ASCII and binary format. Supports versions AC1009 through AC1032.
 
+DXF string decoding follows `$DWGCODEPAGE` for both ASCII and binary DXF once the reader sees the raw bytes. Keep the source as `Uint8Array`; if you decode the file to a JavaScript string before calling `DxfReader`, any legacy-codepage bytes have already been normalized by the host runtime.
+
 ### Static methods
 
 ```ts

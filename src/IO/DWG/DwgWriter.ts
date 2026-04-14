@@ -138,7 +138,7 @@ export class DwgWriter extends CadWriterBase<DwgWriterConfiguration> {
 
 		if (this._document.summaryInfo) {
 			const stream = new Uint8Array(8192);
-			const writer = new DwgSummaryInfoWriter(this._version, stream);
+			const writer = new DwgSummaryInfoWriter(this._version, stream, this._encoding);
 			writer.write(this._document.summaryInfo);
 			const data = new Uint8Array(writer.writerStream).slice(0, writer.bytesWritten);
 			this._fileHeaderWriter.addSection(DwgSectionDefinition.SummaryInfo, data, false, 0x100);

@@ -10,6 +10,7 @@ Based on commit: https://github.com/DomCR/ACadSharp/commit/3010994939c1bc21df0c9
 
 - Read/Write DXF files (ASCII and binary)
 - Read/Write DWG files
+- Honor `$DWGCODEPAGE` when reading DXF ASCII/binary strings and when writing legacy-codepage text
 - Extract and modify geometric entities (lines, arcs, circles, polylines, dimensions, etc.)
 - Manage table entries (blocks, layers, line types, text styles, dimension styles)
 - Convert CAD documents to SVG
@@ -70,6 +71,8 @@ const doc = DxfReader.ReadFromStream(data, (sender, e) => {
 });
 ```
 
+DXF string decoding follows `$DWGCODEPAGE` for both ASCII and binary DXF. Pass the raw file bytes as `Uint8Array`; if you decode the file to a JavaScript string before handing it to the reader, the original code page information is already lost.
+
 ### Writing a DWG file
 
 ```ts
@@ -94,12 +97,15 @@ DwgWriter.WriteToStream(buffer, doc);
 import { CadDocument, DxfWriter } from '@node-projects/acad-ts';
 
 const doc = new CadDocument();
+doc.header.codePage = 'ANSI_1252';
 // ... add entities ...
 
 const output = new Uint8Array(1024 * 1024);
 const writer = new DxfWriter(output, doc);
 writer.Write();
 ```
+
+`doc.header.codePage` controls the legacy encoding used for DWG/DXF text data. For exact non-UTF-8 ASCII DXF bytes, prefer a `Uint8Array` target. If you send ASCII DXF to a string-based text sink, that sink's own encoding policy still determines the final bytes.
 
 ### Exporting to SVG
 

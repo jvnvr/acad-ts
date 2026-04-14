@@ -5,10 +5,15 @@ import { TestVariables } from '../../TestVariables.js';
 import { readFileAsArrayBuffer } from '../../testHelpers.js';
 import { DwgWriter } from '../../../src/IO/DWG/DwgWriter.js';
 import { DwgReader } from '../../../src/IO/DWG/DwgReader.js';
+import { DwgStreamWriterBase } from '../../../src/IO/DWG/DwgStreamWriters/DwgStreamWriterBase.js';
+import '../../../src/IO/DWG/DwgStreamWriters/DwgStreamWriterFactory.js';
+import { DwgStreamReaderBase } from '../../../src/IO/DWG/DwgStreamReaders/DwgStreamReaderBase.js';
+import '../../../src/IO/DWG/DwgStreamReaders/DwgStreamReaderFactory.js';
 import { CadDocument } from '../../../src/CadDocument.js';
 import { ACadVersion } from '../../../src/ACadVersion.js';
 import { Line } from '../../../src/Entities/Line.js';
 import { Point } from '../../../src/Entities/Point.js';
+import { getDecoderEncodingLabel } from '../../../src/IO/TextEncoding.js';
 
 const versions = [
   ACadVersion.AC1012,
@@ -77,18 +82,35 @@ describe('DwgWriterTests', () => {
       expect(readed).not.toBeNull();
     });
 
+    it('WriteAnsi1252SpecialChars', () => {
+      if (!isSupportedVersion(version)) return;
+
+      const text = 'säöü';
+      const stream = new Uint8Array(64);
+      const writer = DwgStreamWriterBase.getStreamWriter(version, stream, 'ANSI_1252');
+      writer.writeVariableText(text);
+
+      const written = new Uint8Array(writer.stream).slice(0, Math.ceil(writer.positionInBits / 8));
+      const reader = DwgStreamReaderBase.getStreamHandler(version, written, getDecoderEncodingLabel('ANSI_1252'));
+
+      expect(reader.readVariableText()).toBe(text);
+    });
+
     it('WriteSummaryTest', () => {
       if (version <= ACadVersion.AC1015) return;
       if (!isSupportedVersion(version)) return;
 
       const doc = new CadDocument();
-      if (doc.header) doc.header.version = version;
+      if (doc.header) {
+        doc.header.version = version;
+        doc.header.codePage = 'ANSI_1252';
+      }
       doc.summaryInfo = {
-        title: 'This is a random title',
-        subject: 'This is a subject',
-        author: 'ACadSharp',
-        keywords: 'My Keywords',
-        comments: 'This is my comment',
+        title: 'This is a random title säöü',
+        subject: 'This is a subject säöü',
+        author: 'Jörg säöü',
+        keywords: 'My Keywords säöü',
+        comments: 'This is my comment säöü',
       } as any;
 
       const buffer = new ArrayBuffer(1024 * 1024);

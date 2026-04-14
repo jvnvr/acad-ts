@@ -3,6 +3,7 @@ import { CadHeader } from '../Header/CadHeader.js';
 import { CadReaderConfiguration } from './CadReaderConfiguration.js';
 import { ICadReader } from './ICadReader.js';
 import { NotificationEventHandler, NotificationEventArgs, NotificationType } from './NotificationEventHandler.js';
+import { getDecoderEncodingLabel } from './TextEncoding.js';
 
 export abstract class CadReaderBase<T extends CadReaderConfiguration> implements ICadReader {
 	OnNotification: NotificationEventHandler | null = null;
@@ -34,9 +35,7 @@ export abstract class CadReaderBase<T extends CadReaderConfiguration> implements
 	}
 
 	protected getListedEncoding(code: number): string {
-		// In TypeScript/browser, use TextDecoder encoding labels
-		// Simplified: return a label or default
-		return 'utf-8';
+		return getDecoderEncodingLabel(code);
 	}
 
 	protected triggerNotification(message: string, notificationType: NotificationType, ex: Error | null = null): void {

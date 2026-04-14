@@ -7,20 +7,18 @@ export class DxfTextReader extends DxfStreamReaderBase {
   }
 
   private _data: Uint8Array;
-  private _text: string;
-  private _textPos: number = 0;
+  private _bytePos: number = 0;
 
   public constructor(stream: Uint8Array) {
     super();
     this._data = stream;
-    this._text = new TextDecoder('utf-8').decode(stream);
     this.Start();
   }
 
   public override Start(): void {
     super.Start();
 
-    this._textPos = 0;
+    this._bytePos = 0;
   }
 
   public override ReadNext(): void {
@@ -29,17 +27,19 @@ export class DxfTextReader extends DxfStreamReaderBase {
   }
 
   protected readStringLine(): string {
-    let end = this._text.indexOf('\n', this._textPos);
-    if (end === -1) {
-      end = this._text.length;
+    let end = this._bytePos;
+    while (end < this._data.length && this._data[end] !== 0x0A) {
+      end++;
     }
-    let line = this._text.substring(this._textPos, end);
-    this._textPos = end + 1;
 
-    // Remove trailing \r
-    if (line.endsWith('\r')) {
-      line = line.substring(0, line.length - 1);
+    let lineBytes = this._data.subarray(this._bytePos, end);
+    this._bytePos = end < this._data.length ? end + 1 : end;
+
+    if (lineBytes.length > 0 && lineBytes[lineBytes.length - 1] === 0x0D) {
+      lineBytes = lineBytes.subarray(0, lineBytes.length - 1);
     }
+
+    let line = this.decodeString(lineBytes);
 
     // Trim whitespace like C# StreamReader.ReadLine()
     line = line.trim();

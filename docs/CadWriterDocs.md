@@ -43,10 +43,13 @@ Writes DXF files in ASCII or binary format.
 ```ts
 import { DxfWriter } from '@node-projects/acad-ts';
 
+doc.header.codePage = 'ANSI_1252';
 const output = new Uint8Array(1024 * 1024);
 const writer = new DxfWriter(output, doc);
 writer.Write();
 ```
+
+`doc.header.codePage` controls the legacy code page used for DWG/DXF text bytes. For ASCII DXF, prefer a `Uint8Array` output target when you need exact non-UTF-8 bytes. If you route ASCII DXF through a string-based sink, the sink's own encoding step still decides which bytes end up on disk or on the wire.
 
 ## SvgWriter
 

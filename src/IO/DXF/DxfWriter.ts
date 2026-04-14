@@ -14,6 +14,7 @@ import { CadDocument } from '../../CadDocument.js';
 import { DxfCode } from '../../DxfCode.js';
 import { DxfFileToken } from '../../DxfFileToken.js';
 import { NotificationEventHandler } from '../NotificationEventHandler.js';
+import { encodeCadString } from '../TextEncoding.js';
 
 type DxfTextOutput = {
   write(value: string): void;
@@ -31,15 +32,16 @@ export type DxfWriteTarget = Uint8Array | DxfTextOutput | DxfBinaryOutput;
 
 class Uint8ArrayTextOutput implements DxfTextOutput {
   private readonly _stream: Uint8Array;
-  private readonly _encoder: TextEncoder = new TextEncoder();
+  private readonly _encoding: string;
   private _position: number = 0;
 
-  public constructor(stream: Uint8Array) {
+  public constructor(stream: Uint8Array, encoding: string) {
     this._stream = stream;
+    this._encoding = encoding;
   }
 
   public write(value: string): void {
-    const bytes = this._encoder.encode(value);
+    const bytes = encodeCadString(value, this._encoding);
     this.ensureCapacity(bytes.length);
     this._stream.set(bytes, this._position);
     this._position += bytes.length;
@@ -147,7 +149,7 @@ export class DxfWriter extends CadWriterBase<DxfWriterConfiguration, DxfWriteTar
 
   private createStreamWriter(): void {
     if (this.IsBinary) {
-      this._writer = new DxfBinaryWriter(this.createBinaryTarget());
+      this._writer = new DxfBinaryWriter(this.createBinaryTarget(), this._encoding);
     } else {
       this._writer = new DxfAsciiWriter(this.createTextTarget());
     }
@@ -157,7 +159,7 @@ export class DxfWriter extends CadWriterBase<DxfWriterConfiguration, DxfWriteTar
 
   private createTextTarget(): DxfTextOutput {
     if (this._stream instanceof Uint8Array) {
-      return new Uint8ArrayTextOutput(this._stream);
+      return new Uint8ArrayTextOutput(this._stream, this._encoding);
     }
 
     return this._stream as DxfTextOutput;

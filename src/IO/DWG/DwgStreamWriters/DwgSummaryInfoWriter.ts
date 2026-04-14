@@ -4,6 +4,7 @@ import { DwgSectionIO } from '../DwgSectionIO.js';
 import { DwgSectionDefinition } from '../FileHeaders/DwgSectionDefinition.js';
 import { DwgStreamWriterBase } from './DwgStreamWriterBase.js';
 import { IDwgStreamWriter } from './IDwgStreamWriter.js';
+import { encodeCadString } from '../../TextEncoding.js';
 
 export class DwgSummaryInfoWriter extends DwgSectionIO {
 	override get SectionName(): string { return DwgSectionDefinition.SummaryInfo; }
@@ -14,10 +15,12 @@ export class DwgSummaryInfoWriter extends DwgSectionIO {
 	private _writer: IDwgStreamWriter;
 	declare protected readonly _version: ACadVersion;
 	private _writeStringMethod: (value: string) => void;
+    private readonly _encoding: string;
 
-	constructor(version: ACadVersion, stream: Uint8Array) {
+	constructor(version: ACadVersion, stream: Uint8Array, encoding: string) {
 		super(version);
 		this._version = version;
+		this._encoding = encoding;
 		this._writer = DwgStreamWriterBase.getStreamWriter(version, stream, 'utf-16le');
 
 		if (version < ACadVersion.AC1021) {
@@ -65,8 +68,7 @@ export class DwgSummaryInfoWriter extends DwgSectionIO {
 			this._writer.writeRawShort(0);
 			return;
 		}
-		const encoder = new TextEncoder();
-		const bytes = encoder.encode(value);
+		const bytes = encodeCadString(value, this._encoding);
 		this._writer.writeRawShort(bytes.length);
 		this._writer.writeBytes(bytes);
 	}

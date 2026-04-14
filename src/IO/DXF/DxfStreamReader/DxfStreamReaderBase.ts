@@ -4,8 +4,11 @@ import { DxfFileToken } from '../../../DxfFileToken.js';
 import { GroupCodeValue, GroupCodeValueType } from '../../../GroupCodeValue.js';
 import { DxfException } from '../../../Exceptions/DxfException.js';
 import { MathHelper } from '../../../Math/MathHelper.js';
+import { decodeCadString, getDecoderEncodingLabel } from '../../TextEncoding.js';
 
 export abstract class DxfStreamReaderBase implements IDxfStreamReader {
+  public encoding: string = getDecoderEncodingLabel('ANSI_1252');
+
   public DxfCode: DxfCode = DxfCode.Invalid;
 
   public GroupCodeValue: GroupCodeValueType = GroupCodeValueType.None;
@@ -126,6 +129,10 @@ export abstract class DxfStreamReaderBase implements IDxfStreamReader {
   protected abstract lineAsBinaryChunk(): Uint8Array;
 
   protected abstract lineAsBool(): boolean;
+
+  protected decodeString(bytes: Uint8Array): string {
+    return decodeCadString(bytes, this.encoding);
+  }
 
   private transformValue(code: GroupCodeValueType): any {
     switch (code) {
