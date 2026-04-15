@@ -225,7 +225,7 @@ export abstract class DxfSectionWriterBase {
           this._writer.WriteVector(record.code, record.value as IVector);
         } else if (record instanceof ExtendedDataWorldCoordinate) {
           this._writer.WriteVector(record.code, record.value as IVector);
-        } else if ((record as any).ResolveReference) {
+        } else if (typeof (record as any).resolveReference === 'function') {
           const handle = record as unknown as IExtendedDataHandleReference;
           let h = handle.value;
           if (handle.resolveReference(this._document) === null) {
@@ -250,9 +250,9 @@ export abstract class DxfSectionWriterBase {
     this._writer.Write(6, entity.lineType?.name ?? 'ByLayer');
 
     if (entity.bookColor !== null) {
-      this._writer.Write(62, entity.bookColor.Color.GetApproxIndex());
-      this._writer.WriteTrueColor(420, entity.bookColor.Color);
-      this._writer.Write(430, entity.bookColor.Name);
+      this._writer.Write(62, entity.bookColor.color.getApproxIndex());
+      this._writer.WriteTrueColor(420, entity.bookColor.color);
+      this._writer.Write(430, entity.bookColor.name);
     } else if (entity.color.isTrueColor) {
       this._writer.WriteTrueColor(420, entity.color);
     } else {
@@ -923,7 +923,7 @@ export abstract class DxfSectionWriterBase {
   }
 
   private writeLeaderRoot(root: LeaderRoot): void {
-    const rootMap = DxfClassMap.Create(root.constructor.name);
+  const rootMap = DxfClassMap.Create(root.constructor, 'LeaderRoot');
     this._writer.Write(290, root.contentValid, rootMap);
     this._writer.WriteVector(10, root.connectionPoint, rootMap);
     this._writer.WriteVector(11, root.direction, rootMap);

@@ -298,8 +298,7 @@ export abstract class DwgStreamWriterBase implements IDwgStreamWriter {
 
 	writeTextUnicode(value: string): void {
 		const text = value ?? '';
-		const encoder = new TextEncoder();
-		const bytes = encoder.encode(text);
+		const bytes = encodeCadString(text, this.encoding);
 		this.writeRawShort(bytes.length + 1);
 		this.ensureCapacity(bytes.length + 1);
 		for (let i = 0; i < bytes.length; i++) {
@@ -369,9 +368,8 @@ export abstract class DwgStreamWriterBase implements IDwgStreamWriter {
 	}
 
 	writeTimeSpan(value: number): void {
-		// value in milliseconds
 		const days = Math.floor(value / 86400000);
-		const ms = value % 86400000;
+		const ms = ((value % 1000) + 1000) % 1000;
 		this.writeBitLong(days);
 		this.writeBitLong(ms);
 	}

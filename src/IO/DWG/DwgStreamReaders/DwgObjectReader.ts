@@ -308,7 +308,7 @@ export class DwgObjectReader extends DwgSectionIO {
 
       const offset = this._map.get(handle);
       if (offset === undefined ||
-        this._builder.TryGetObjectTemplate(handle) !== undefined ||
+        this._builder.TryGetObjectTemplate(handle) != null ||
         this._readedObjects.has(handle)) {
         continue;
       }
@@ -385,7 +385,7 @@ export class DwgObjectReader extends DwgSectionIO {
       : this._handlesReader.handleReferenceWithRef(handle);
 
     if (value !== 0 &&
-      this._builder.TryGetObjectTemplate(value) === undefined &&
+      this._builder.TryGetObjectTemplate(value) == null &&
       !this._readedObjects.has(value)) {
       this._handles.push(value);
     }

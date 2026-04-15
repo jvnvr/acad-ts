@@ -30,8 +30,8 @@ export class CadLayoutTemplate extends CadTemplateT<Layout> {
 			this.CadObject.associatedBlock = record;
 		}
 
-		const viewport = builder.TryGetCadObject<Viewport>(this.ActiveViewportHandle);
-		if (viewport) {
+		const viewport = builder.TryGetCadObject(this.ActiveViewportHandle);
+		if (viewport instanceof Viewport) {
 			this.CadObject.lastActiveViewport = viewport;
 		}
 

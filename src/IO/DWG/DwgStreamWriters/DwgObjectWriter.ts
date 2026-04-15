@@ -35,7 +35,7 @@ import { Line } from '../../../Entities/Line.js';
 import { LwPolyline, LwPolylineFlags } from '../../../Entities/LwPolyline.js';
 import { Mesh } from '../../../Entities/Mesh.js';
 import { MLine, MLineFlags } from '../../../Entities/MLine.js';
-import { MText, BackgroundFillFlags } from '../../../Entities/MText.js';
+import { MText, BackgroundFillFlags, ColumnType } from '../../../Entities/MText.js';
 import { MultiLeader } from '../../../Entities/MultiLeader.js';
 import { Ole2Frame } from '../../../Entities/Ole2Frame.js';
 import { PdfUnderlay } from '../../../Entities/PdfUnderlay.js';
@@ -257,7 +257,7 @@ export class DwgObjectWriter extends DwgSectionIO {
 
 		//Common:
 		//Numentries BL 70
-		this._writer.writeBitLong(this._document.lineTypes.length - 2);
+		this._writer.writeBitLong(this._document.lineTypes.count - 2);
 
 		for (const item of this._document.lineTypes) {
 			if (item.name.toLowerCase() === LineType.ByBlockName.toLowerCase()
@@ -267,8 +267,8 @@ export class DwgObjectWriter extends DwgSectionIO {
 			this._writer.handleReferenceTyped(DwgReferenceType.SoftOwnership, item);
 		}
 
-		this._writer.handleReferenceTyped(DwgReferenceType.HardOwnership, this._document.lineTypes.ByBlock);
-		this._writer.handleReferenceTyped(DwgReferenceType.HardOwnership, this._document.lineTypes.ByLayer);
+		this._writer.handleReferenceTyped(DwgReferenceType.HardOwnership, this._document.lineTypes.byBlock);
+		this._writer.handleReferenceTyped(DwgReferenceType.HardOwnership, this._document.lineTypes.byLayer);
 
 		this.registerObject(this._document.lineTypes);
 		this.writeEntries(this._document.lineTypes);
@@ -279,7 +279,7 @@ export class DwgObjectWriter extends DwgSectionIO {
 
 		//Common:
 		//Numentries BL 70
-		this._writer.writeBitLong(this._document.blockRecords.length - 2);
+		this._writer.writeBitLong(this._document.blockRecords.count - 2);
 
 		for (const item of this._document.blockRecords) {
 			if (item.name.toLowerCase() === BlockRecord.ModelSpaceName.toLowerCase()
@@ -398,12 +398,38 @@ export class DwgObjectWriter extends DwgSectionIO {
 
 	private writeBlockHeader(record: BlockRecord): void {
 		const entities = this.getCompatibleEntities(record.entities);
+		const ownedEntityHandles = entities.map((entity) => entity.handle);
+		const ownedObjectHandles = record.layout == null && record.ownedObjectHandles.length > 0
+			? [...record.ownedObjectHandles]
+			: [...ownedEntityHandles];
+		for (const handle of ownedEntityHandles) {
+			if (!ownedObjectHandles.includes(handle)) {
+				ownedObjectHandles.push(handle);
+			}
+		}
+		const flags = record.combinedFlags;
+		const inserts = Array.from(this._document.entities)
+			.filter((item): item is Insert => item instanceof Insert && item.block?.name === record.name);
+		const insertHandles = inserts.map((insert) => insert.handle);
+		if (record.name.toUpperCase().startsWith('*T')) {
+			for (const handle of record.insertHandles) {
+				if (!insertHandles.includes(handle)) {
+					insertHandles.push(handle);
+				}
+			}
+		}
+		for (const insert of inserts) {
+			if (!insertHandles.includes(insert.handle)) {
+				insertHandles.push(insert.handle);
+			}
+		}
+		const insertsByHandle = new Map(inserts.map((insert) => [insert.handle, insert]));
 
 		this.writeCommonNonEntityData(record);
 
 		//Common:
 		//Entry name TV 2
-		if ((record.flags & BlockTypeFlags.Anonymous) !== 0) {
+		if ((flags & BlockTypeFlags.Anonymous) !== 0) {
 			this._writer.writeVariableText(record.name.substring(0, 2));
 		} else if (record.layout != null) {
 			const processedBlockName = record.name.replace(/[0-9]/g, '');
@@ -412,12 +438,12 @@ export class DwgObjectWriter extends DwgSectionIO {
 			this._writer.writeVariableText(record.name);
 		}
 
-		this.writeXrefDependantBit(record);
+		this.writeXrefDependantBit({ flags });
 
-		this._writer.writeBit((record.flags & BlockTypeFlags.Anonymous) !== 0);
+		this._writer.writeBit((flags & BlockTypeFlags.Anonymous) !== 0);
 		this._writer.writeBit(record.hasAttributes);
-		this._writer.writeBit((record.flags & BlockTypeFlags.XRef) !== 0);
-		this._writer.writeBit((record.flags & BlockTypeFlags.XRefOverlay) !== 0);
+		this._writer.writeBit((flags & BlockTypeFlags.XRef) !== 0);
+		this._writer.writeBit((flags & BlockTypeFlags.XRefOverlay) !== 0);
 
 		//R2000+:
 		if (this.R2000Plus) {
@@ -426,9 +452,9 @@ export class DwgObjectWriter extends DwgSectionIO {
 
 		//R2004+:
 		if (this.R2004Plus
-			&& (record.flags & BlockTypeFlags.XRef) === 0
-			&& (record.flags & BlockTypeFlags.XRefOverlay) === 0) {
-			this._writer.writeBitLong(entities.length);
+			&& (flags & BlockTypeFlags.XRef) === 0
+			&& (flags & BlockTypeFlags.XRefOverlay) === 0) {
+			this._writer.writeBitLong(ownedObjectHandles.length);
 		}
 
 		//Common:
@@ -437,9 +463,7 @@ export class DwgObjectWriter extends DwgSectionIO {
 
 		//R2000+:
 		if (this.R2000Plus) {
-			const inserts = Array.from(this._document.entities)
-				.filter((i): i is Insert => i instanceof Insert && i.block?.name === record.name);
-			for (const _item of inserts) {
+			for (const _handle of insertHandles) {
 				this._writer.writeByte(1);
 			}
 			this._writer.writeByte(0);
@@ -460,8 +484,8 @@ export class DwgObjectWriter extends DwgSectionIO {
 
 		//R13-R2000:
 		if (this._version >= ACadVersion.AC1012 && this._version <= ACadVersion.AC1015
-			&& (record.flags & BlockTypeFlags.XRef) === 0
-			&& (record.flags & BlockTypeFlags.XRefOverlay) === 0) {
+			&& (flags & BlockTypeFlags.XRef) === 0
+			&& (flags & BlockTypeFlags.XRefOverlay) === 0) {
 			if (entities.length > 0) {
 				this._writer.handleReferenceTyped(DwgReferenceType.SoftPointer, entities[0]);
 				this._writer.handleReferenceTyped(DwgReferenceType.SoftPointer, entities[entities.length - 1]);
@@ -473,8 +497,13 @@ export class DwgObjectWriter extends DwgSectionIO {
 
 		//R2004+:
 		if (this.R2004Plus) {
-			for (const item of entities) {
-				this._writer.handleReferenceTyped(DwgReferenceType.HardOwnership, item);
+			for (const handle of ownedObjectHandles) {
+				const entity = entities.find((item) => item.handle === handle);
+				if (entity) {
+					this._writer.handleReferenceTyped(DwgReferenceType.HardOwnership, entity);
+				} else {
+					this._writer.handleReferenceTypedHandle(DwgReferenceType.HardOwnership, handle);
+				}
 			}
 		}
 
@@ -483,10 +512,13 @@ export class DwgObjectWriter extends DwgSectionIO {
 
 		//R2000+:
 		if (this.R2000Plus) {
-			const inserts = Array.from(this._document.entities)
-				.filter((i): i is Insert => i instanceof Insert && i.block?.name === record.name);
-			for (const item of inserts) {
-				this._writer.handleReferenceTyped(DwgReferenceType.SoftPointer, item);
+			for (const handle of insertHandles) {
+				const insert = insertsByHandle.get(handle);
+				if (insert) {
+					this._writer.handleReferenceTyped(DwgReferenceType.SoftPointer, insert);
+				} else {
+					this._writer.handleReferenceTypedHandle(DwgReferenceType.SoftPointer, handle);
+				}
 			}
 			this._writer.handleReferenceTyped(DwgReferenceType.HardPointer, record.layout);
 		}
@@ -1081,7 +1113,7 @@ export class DwgObjectWriter extends DwgSectionIO {
 		}
 	}
 
-	private writeXrefDependantBit(entry: TableEntry): void {
+	private writeXrefDependantBit(entry: { flags: number }): void {
 		if (this.R2007Plus) {
 			this._writer.writeBitShort((entry.flags & StandardFlags.XrefDependent) !== 0 ? 0b100000000 : 0);
 		} else {
@@ -1100,7 +1132,7 @@ export class DwgObjectWriter extends DwgSectionIO {
 				if (this.R2004Pre) {
 					if (this._document.classes.tryGetByName(cadObject.objectName)) {
 						const dxfClass = this._document.classes.getByName(cadObject.objectName);
-						this._writer.writeObjectType(dxfClass.ClassNumber);
+							this._writer.writeObjectType(dxfClass.classNumber);
 					} else {
 						this.notify(`Dxf Class not found for ${cadObject.objectType} fullname: ${cadObject.constructor.name}`, NotificationType.Warning);
 						return;
@@ -1112,7 +1144,7 @@ export class DwgObjectWriter extends DwgSectionIO {
 			case ObjectType.UNLISTED:
 				if (this._document.classes.tryGetByName(cadObject.objectName)) {
 					const dxfClass = this._document.classes.getByName(cadObject.objectName);
-					this._writer.writeObjectType(dxfClass.ClassNumber);
+						this._writer.writeObjectType(dxfClass.classNumber);
 				} else {
 					this.notify(`Dxf Class not found for ${cadObject.objectType} fullname: ${cadObject.constructor.name}`, NotificationType.Warning);
 					return;
@@ -1170,7 +1202,7 @@ export class DwgObjectWriter extends DwgSectionIO {
 			this._writer.handleReferenceTyped(DwgReferenceType.HardPointer, entity.layer);
 			const isbylayerlt = entity.lineType.name === LineType.ByLayerName;
 			this._writer.writeBit(isbylayerlt);
-			if (isbylayerlt) {
+			if (isbylayerlt && entity.lineType.handle !== 0) {
 				this._writer.handleReferenceTyped(DwgReferenceType.HardPointer, entity.lineType);
 			}
 		}
@@ -1189,7 +1221,7 @@ export class DwgObjectWriter extends DwgSectionIO {
 			}
 		}
 
-		this._writer.writeEnColor(entity.color, entity.transparency);
+		this._writer.writeEnColorBook(entity.color, entity.transparency, entity.bookColor != null);
 
 		if (this._version >= ACadVersion.AC1018 && entity.bookColor != null) {
 			this._writer.handleReferenceTyped(DwgReferenceType.HardPointer, entity.bookColor);
@@ -1281,15 +1313,23 @@ export class DwgObjectWriter extends DwgSectionIO {
 				dv.setFloat64(16, record.value.z, true);
 				const bytes = new Uint8Array(buf);
 				for (let i = 0; i < 24; i++) chunks.push(bytes[i]);
-			} else if ('ResolveReference' in record && 'Value' in record) {
-				// IExtendedDataHandleReference
-				const href = record as any;
-				let h: number = href.Value;
-				if (href.ResolveReference(this._document) == null) {
+			} else if ('resolveReference' in record && 'value' in record) {
+				const href = record as IExtendedDataHandleReference;
+				let h = href.value;
+				try {
+					if (href.resolveReference(this._document) == null) {
+						h = 0;
+					}
+				} catch {
 					h = 0;
 				}
 				const buf = new ArrayBuffer(8);
-				new DataView(buf).setFloat64(0, h, false); // big endian
+				let value = BigInt(Math.trunc(h));
+				const view = new DataView(buf);
+				for (let i = 7; i >= 0; i--) {
+					view.setUint8(i, Number(value & 0xFFn));
+					value >>= 8n;
+				}
 				const bytes = new Uint8Array(buf);
 				for (let i = 0; i < 8; i++) chunks.push(bytes[i]);
 			} else if (record instanceof ExtendedDataString) {
@@ -2628,6 +2668,27 @@ export class DwgObjectWriter extends DwgSectionIO {
 		this._writer.writeBitDouble(mtext.rectangleHeight);
 		this._writer.writeBitDouble(mtext.horizontalWidth);
 		this._writer.writeBitDouble(mtext.verticalHeight);
+
+		const columnData = mtext.columnData;
+		const columnType = columnData?.columnType ?? ColumnType.NoColumns;
+		this._writer.writeBitShort(columnType);
+
+		if (columnType === ColumnType.NoColumns || columnData == null) {
+			return;
+		}
+
+		const columnCount = columnData.columnCount;
+		this._writer.writeBitLong(columnCount);
+		this._writer.writeBitDouble(columnData.width);
+		this._writer.writeBitDouble(columnData.gutter);
+		this._writer.writeBit(columnData.autoHeight);
+		this._writer.writeBit(columnData.flowReversed);
+
+		if (!columnData.autoHeight && columnType === ColumnType.DynamicColumns) {
+			for (const height of columnData.heights) {
+				this._writer.writeBitDouble(height);
+			}
+		}
 	}
 
 	private writeFaceRecord(face: VertexFaceRecord): void {
@@ -3482,19 +3543,30 @@ export class DwgObjectWriter extends DwgSectionIO {
 
 	private writeXRecord(xrecord: XRecord): void {
 		const chunks: number[] = [];
+		const getHandleValue = (value: unknown): number => {
+			if (typeof value === 'number') {
+				return value;
+			}
+			if (typeof value === 'bigint') {
+				return Number(value);
+			}
+			if (value instanceof CadObject) {
+				return value.handle;
+			}
+			return 0;
+		};
 		const pushInt16LE = (v: number) => {
 			chunks.push(v & 0xFF, (v >> 8) & 0xFF);
 		};
 		const pushInt32LE = (v: number) => {
 			chunks.push(v & 0xFF, (v >> 8) & 0xFF, (v >> 16) & 0xFF, (v >> 24) & 0xFF);
 		};
-		const pushInt64LE = (v: number) => {
-			// For handles, write as 8 bytes LE
-			const buf = new ArrayBuffer(8);
-			const dv = new DataView(buf);
-			dv.setFloat64(0, v, true);
-			const bytes = new Uint8Array(buf);
-			for (let i = 0; i < 8; i++) chunks.push(bytes[i]);
+		const pushInt64LE = (v: number | bigint) => {
+			let value = typeof v === 'bigint' ? v : BigInt(Math.trunc(v));
+			value = BigInt.asUintN(64, value);
+			for (let i = 0; i < 8; i++) {
+				chunks.push(Number((value >> BigInt(i * 8)) & 0xFFn));
+			}
 		};
 		const pushFloat64LE = (v: number) => {
 			const buf = new ArrayBuffer(8);
@@ -3505,9 +3577,14 @@ export class DwgObjectWriter extends DwgSectionIO {
 
 		for (const entry of xrecord.entries) {
 			if (entry.value == null) continue;
+			const groupValueType = GroupCodeValue.transformValue(entry.code);
+			if ((groupValueType === GroupCodeValueType.ObjectId
+				|| groupValueType === GroupCodeValueType.ExtendedDataHandle)
+				&& getHandleValue(entry.value) === 0) {
+				continue;
+			}
 
 			pushInt16LE(entry.code);
-			const groupValueType = GroupCodeValue.transformValue(entry.code);
 
 			switch (groupValueType) {
 				case GroupCodeValueType.Byte:
@@ -3544,8 +3621,8 @@ export class DwgObjectWriter extends DwgSectionIO {
 					break;
 				}
 				case GroupCodeValueType.Handle: {
-					const ref = entry.getReference();
-					const text = ref == null ? '' : ref.handle.toString(16).toUpperCase();
+					const handle = getHandleValue(entry.value);
+					const text = handle === 0 ? '' : handle.toString(16).toUpperCase();
 					this.writeStringInChunks(chunks, text);
 					break;
 				}
@@ -3555,8 +3632,7 @@ export class DwgObjectWriter extends DwgSectionIO {
 					break;
 				case GroupCodeValueType.ObjectId:
 				case GroupCodeValueType.ExtendedDataHandle: {
-					const ref2 = entry.getReference();
-					const handle = ref2 == null ? 0 : ref2.handle;
+					const handle = getHandleValue(entry.value);
 					pushInt64LE(handle);
 					break;
 				}

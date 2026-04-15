@@ -285,25 +285,15 @@ export class CadUtils {
 	}
 
 	public static dateToJulian(date: Date): { jdate: number; milliseconds: number } {
-		const refDate = new Date(1, 0, 1, 12, 0, 0);
+		const refDate = new Date(Date.UTC(1, 0, 1, 12, 0, 0));
 		if (date < refDate) {
 			return { jdate: 0, milliseconds: 0 };
 		}
 
-		const adjusted = new Date(date.getTime() - 12 * 3600000);
-		const month = adjusted.getMonth() + 1;
-		const day = Math.floor((14.0 - month) / 12.0);
-		const year = adjusted.getFullYear() + 4800 - day;
-		const jdate = adjusted.getDate() +
-			Math.floor((153.0 * (month + 12 * day - 3) + 2.0) / 5.0) +
-			365 * year +
-			Math.floor(year / 4.0) -
-			Math.floor(year / 100.0) +
-			Math.floor(year / 400.0) - 32045;
-		const milliseconds = adjusted.getMilliseconds() +
-			adjusted.getSeconds() * 1000 +
-			adjusted.getMinutes() * 60000 +
-			adjusted.getHours() * 3600000;
+		const dayMilliseconds = 86400000;
+		const timestamp = date.getTime();
+		const jdate = Math.floor(timestamp / dayMilliseconds + 2440587.5);
+		const milliseconds = Math.round(timestamp - (jdate - 2440587.5) * dayMilliseconds);
 		return { jdate, milliseconds };
 	}
 }

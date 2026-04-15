@@ -11,6 +11,7 @@ import { TextMirrorFlag } from './TextMirrorFlag.js';
 import { CollectionChangedEventArgs } from '../CollectionChangedEventArgs.js';
 import { IText } from './IText.js';
 import { XYZ } from '../Math/XYZ.js';
+import { Transform } from '../Math/Transform.js';
 
 export class TextEntity extends Entity implements IText {
 	alignmentPoint: XYZ = new XYZ(0, 0, 0);
@@ -94,7 +95,20 @@ export class TextEntity extends Entity implements IText {
 	}
 
 	override applyTransform(transform: any): void {
-		// TODO: Complex transform logic not available (Matrix3, XY operations)
+		if (!(transform instanceof Transform)) {
+			return;
+		}
+
+		const matrix = transform.matrix;
+		this.insertPoint = transform.applyTransform(this.insertPoint);
+
+		const xScale = Math.hypot(matrix.m00, matrix.m10, matrix.m20);
+		const yScale = Math.hypot(matrix.m01, matrix.m11, matrix.m21);
+		const safeYScale = yScale === 0 ? 1 : yScale;
+
+		this.rotation += transform.eulerRotation.z;
+		this.height *= safeYScale;
+		this.widthFactor *= xScale / safeYScale;
 	}
 
 	override clone(): CadObject {

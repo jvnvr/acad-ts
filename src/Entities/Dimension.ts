@@ -192,6 +192,47 @@ export abstract class Dimension extends Entity {
 		return null;
 	}
 
+	protected static angleBetweenVectors(first: XYZ, second: XYZ): number {
+		const lengthProduct = first.getLength() * second.getLength();
+		if (lengthProduct === 0) {
+			return 0;
+		}
+
+		const cosine = first.dot(second) / lengthProduct;
+		const clamped = Math.max(-1, Math.min(1, cosine));
+		return Math.acos(clamped);
+	}
+
+	protected static areParallel(first: XYZ, second: XYZ): boolean {
+		return Dimension.isZeroVector(first.cross(second));
+	}
+
+	protected static intersectLinesXY(firstStart: XYZ, firstEnd: XYZ, secondStart: XYZ, secondEnd: XYZ): XYZ {
+		const denominator =
+			(firstStart.x - firstEnd.x) * (secondStart.y - secondEnd.y) -
+			(firstStart.y - firstEnd.y) * (secondStart.x - secondEnd.x);
+		if (Math.abs(denominator) <= 1e-12) {
+			return XYZ.NaN;
+		}
+
+		const firstDeterminant = firstStart.x * firstEnd.y - firstStart.y * firstEnd.x;
+		const secondDeterminant = secondStart.x * secondEnd.y - secondStart.y * secondEnd.x;
+
+		return new XYZ(
+			(firstDeterminant * (secondStart.x - secondEnd.x) - (firstStart.x - firstEnd.x) * secondDeterminant) / denominator,
+			(firstDeterminant * (secondStart.y - secondEnd.y) - (firstStart.y - firstEnd.y) * secondDeterminant) / denominator,
+			firstStart.z,
+		);
+	}
+
+	protected static isZeroVector(vector: XYZ, epsilon: number = 1e-12): boolean {
+		return Math.abs(vector.x) <= epsilon && Math.abs(vector.y) <= epsilon && Math.abs(vector.z) <= epsilon;
+	}
+
+	protected static subtractPoints(first: XYZ, second: XYZ): XYZ {
+		return new XYZ(first.x - second.x, first.y - second.y, first.z - second.z);
+	}
+
 	protected override _tableOnRemove(sender: any, e: CollectionChangedEventArgs): void {
 		super._tableOnRemove(sender, e);
 

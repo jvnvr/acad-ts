@@ -61,6 +61,10 @@ export class BlockRecord extends TableEntry {
 		this.blockEntity.flags = value;
 	}
 
+	public get combinedFlags(): BlockTypeFlags {
+		return (this.blockEntity.flags | (this.flags as unknown as BlockTypeFlags)) as BlockTypeFlags;
+	}
+
 	public get hasAttributes(): boolean {
 		return this.attributeDefinitions.length > 0;
 	}
@@ -81,6 +85,8 @@ export class BlockRecord extends TableEntry {
 	}
 
 	public isExplodable: boolean = false;
+	public insertHandles: number[] = [];
+	public ownedObjectHandles: number[] = [];
 
 	public get isUnloaded(): boolean {
 		return this.blockEntity.isUnloaded;
@@ -147,6 +153,8 @@ export class BlockRecord extends TableEntry {
 		const clone = super.clone() as BlockRecord;
 
 		clone._layout = null;
+		clone.insertHandles = [...this.insertHandles];
+		clone.ownedObjectHandles = [...this.ownedObjectHandles];
 
 		// TODO: SortEntitiesTable cloning when available
 

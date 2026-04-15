@@ -23,6 +23,7 @@ export class CadXRecordTemplate extends CadTemplate<XRecord> {
 			if (obj) {
 				(this.CadObject as any).createEntry(entry[0], obj);
 			} else {
+				(this.CadObject as any).createEntry(entry[0], entry[1]);
 				builder.Notify(`XRecord reference not found ${entry[0]}|${entry[1]}`, NotificationType.Warning);
 			}
 		}

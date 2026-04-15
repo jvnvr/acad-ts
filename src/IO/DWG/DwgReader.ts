@@ -61,7 +61,7 @@ export class DwgReader extends CadReaderBase<DwgReaderConfiguration> {
 	}
 
 	Read(): CadDocument {
-		this._document = new CadDocument();
+		this._document = new CadDocument(undefined, false);
 
 		this._fileHeader = this.readFileHeader();
 

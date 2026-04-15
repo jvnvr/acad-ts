@@ -1,0 +1,32 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.2.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "reference", "reference", "{BDE35A5A-67E2-89B5-F696-3D963A037A75}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "csharp-ref", "csharp-ref", "{15A995A8-EEC2-A59C-F285-CAB9CC87E7FA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DwgRefGen", "reference\csharp-ref\DwgRefGen\DwgRefGen.csproj", "{97D3622D-8E53-7DC9-A60B-E52DAA06550C}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{97D3622D-8E53-7DC9-A60B-E52DAA06550C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{97D3622D-8E53-7DC9-A60B-E52DAA06550C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{97D3622D-8E53-7DC9-A60B-E52DAA06550C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{97D3622D-8E53-7DC9-A60B-E52DAA06550C}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{15A995A8-EEC2-A59C-F285-CAB9CC87E7FA} = {BDE35A5A-67E2-89B5-F696-3D963A037A75}
+		{97D3622D-8E53-7DC9-A60B-E52DAA06550C} = {15A995A8-EEC2-A59C-F285-CAB9CC87E7FA}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {62389B72-32BB-4889-8112-391C67C68336}
+	EndGlobalSection
+EndGlobal

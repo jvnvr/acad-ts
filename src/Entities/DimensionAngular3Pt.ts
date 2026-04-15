@@ -11,8 +11,18 @@ export class DimensionAngular3Pt extends Dimension {
 	firstPoint: XYZ = new XYZ(0, 0, 0);
 
 	get measurement(): number {
-		// TODO: AngleBetweenVectors / IsParallel not available
-		return 0;
+		const firstVector = Dimension.subtractPoints(this.firstPoint, this.angleVertex);
+		const secondVector = Dimension.subtractPoints(this.secondPoint, this.angleVertex);
+
+		if (firstVector.equals(secondVector)) {
+			return 0;
+		}
+
+		if (Dimension.areParallel(firstVector, secondVector)) {
+			return Math.PI;
+		}
+
+		return Dimension.angleBetweenVectors(firstVector, secondVector);
 	}
 
 	override get objectName(): string {

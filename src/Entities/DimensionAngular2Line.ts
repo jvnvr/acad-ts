@@ -9,8 +9,7 @@ export class DimensionAngular2Line extends Dimension {
 	angleVertex: XYZ = new XYZ(0, 0, 0);
 
 	get center(): XYZ {
-		// TODO: Line3D intersection not available
-		return new XYZ(0, 0, 0);
+		return Dimension.intersectLinesXY(this.definitionPoint, this.angleVertex, this.firstPoint, this.secondPoint);
 	}
 
 	dimensionArc: XYZ = new XYZ(0, 0, 0);
@@ -18,8 +17,28 @@ export class DimensionAngular2Line extends Dimension {
 	firstPoint: XYZ = new XYZ(0, 0, 0);
 
 	get measurement(): number {
-		// TODO: AngleBetweenVectors not available
-		return 0;
+		const firstVector = Dimension.subtractPoints(this.secondPoint, this.firstPoint);
+		const secondVector = Dimension.subtractPoints(this.definitionPoint, this.angleVertex);
+		let angle = Dimension.angleBetweenVectors(firstVector, secondVector);
+
+		const center = this.center;
+		if (!Number.isFinite(center.x) || !Number.isFinite(center.y) || !Number.isFinite(center.z)) {
+			return angle;
+		}
+
+		const arcVector = Dimension.subtractPoints(this.dimensionArc, center);
+		if (Dimension.isZeroVector(arcVector)) {
+			return angle;
+		}
+
+		const dot1 = firstVector.cross(arcVector).dot(this.normal);
+		const dot2 = arcVector.cross(secondVector).dot(this.normal);
+		const isInOppositeSector = (dot1 < 0 && dot2 > 0) || (dot1 > 0 && dot2 < 0);
+		if (isInOppositeSector) {
+			angle = Math.PI - angle;
+		}
+
+		return angle;
 	}
 
 	override get objectName(): string {
@@ -37,7 +56,13 @@ export class DimensionAngular2Line extends Dimension {
 		return Math.sqrt(dx * dx + dy * dy + dz * dz);
 	}
 	set offset(value: number) {
-		// TODO: Cross product not available
+		const direction = Dimension.subtractPoints(this.secondPoint, this.firstPoint);
+		const perpendicular = this.normal.cross(direction).normalize();
+		this.definitionPoint = new XYZ(
+			this.secondPoint.x + perpendicular.x * value,
+			this.secondPoint.y + perpendicular.y * value,
+			this.secondPoint.z + perpendicular.z * value,
+		);
 	}
 
 	secondPoint: XYZ = new XYZ(0, 0, 0);

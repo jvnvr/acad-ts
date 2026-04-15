@@ -52,6 +52,7 @@ export class CadInsertTemplate extends CadEntityTemplate implements ICadOwnerTem
 			for (const att of attributes) {
 				insert.attributes.push(att);
 				att.owner = insert;
+				insert.applyAttributeTransform(att);
 			}
 		} else {
 			for (const handle of this.OwnedObjectsHandlers) {
@@ -59,6 +60,7 @@ export class CadInsertTemplate extends CadEntityTemplate implements ICadOwnerTem
 				if (att) {
 					insert.attributes.push(att);
 					att.owner = insert;
+					insert.applyAttributeTransform(att);
 				}
 			}
 		}

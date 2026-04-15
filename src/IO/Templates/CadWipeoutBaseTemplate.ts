@@ -26,6 +26,8 @@ export class CadWipeoutBaseTemplate extends CadEntityTemplate {
 		const imgReactor = builder.TryGetCadObject<ImageDefinitionReactor>(this.ImgReactorHandle);
 		if (imgReactor) {
 			image.definitionReactor = imgReactor;
+			imgReactor.image = image;
+			imgReactor.owner = image;
 		}
 	}
 }

@@ -88,8 +88,9 @@ export class DwgAuxHeaderWriter extends DwgSectionIO {
 		this._writer.write8BitJulianDate(this._header.updateDateTime);
 
 		let handseed = -1;
-		if (this._header.handleSeed <= 0x7FFFFFFF) {
-			handseed = this._header.handleSeed;
+		const nextHandleSeed = this._header.handleSeed;
+		if (nextHandleSeed <= 0x7FFFFFFF) {
+			handseed = nextHandleSeed;
 		}
 
 		//RL: HANDSEED(Handle seed) if < 0x7fffffff, otherwise - 1.

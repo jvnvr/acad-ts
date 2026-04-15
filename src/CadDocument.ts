@@ -5,6 +5,13 @@ import { CadSummaryInfo } from './CadSummaryInfo.js';
 import { CollectionChangedEventArgs } from './CollectionChangedEventArgs.js';
 import { CadHeader } from './Header/CadHeader.js';
 import { CadDictionary } from './Objects/CadDictionary.js';
+import { ColorCollection } from './Objects/Collections/ColorCollection.js';
+import { GroupCollection } from './Objects/Collections/GroupCollection.js';
+import { LayoutCollection } from './Objects/Collections/LayoutCollection.js';
+import { MaterialCollection } from './Objects/Collections/MaterialCollection.js';
+import { MLineStyleCollection } from './Objects/Collections/MLineStyleCollection.js';
+import { RasterImage } from './Entities/RasterImage.js';
+import { ImageDefinitionReactor } from './Objects/ImageDefinitionReactor.js';
 import { AppIdsTable } from './Tables/Collections/AppIdsTable.js';
 import { BlockRecordsTable } from './Tables/Collections/BlockRecordsTable.js';
 import { DimensionStylesTable } from './Tables/Collections/DimensionStylesTable.js';
@@ -64,10 +71,12 @@ export class CadDocument implements IHandledCadObject {
 	private _rootDictionary: any | null = null;
 
 	constructor();
-	constructor(version: ACadVersion);
-	constructor(version?: ACadVersion) {
+	constructor(version: ACadVersion, createDefaults?: boolean);
+	constructor(version?: ACadVersion, createDefaults: boolean = true) {
 		this._cadObjects.set(this.handle, this);
-		this.createDefaults();
+		if (createDefaults) {
+			this.createDefaults();
+		}
 		if (version !== undefined && this.header != null) {
 			(this.header as any).version = version;
 		}
@@ -146,7 +155,7 @@ export class CadDocument implements IHandledCadObject {
 	public restoreHandles(): void {
 		const source = [...this._cadObjects.values()];
 		this._cadObjects.clear();
-		// TODO: this.header.handleSeed = 0;
+		this.header.handleSeed = 0;
 		let nextHandle = 1;
 		this._cadObjects.set(0, this);
 
@@ -157,7 +166,7 @@ export class CadDocument implements IHandledCadObject {
 			this._cadObjects.set(item.handle, item);
 		}
 
-		// TODO: this.header.handleSeed = nextHandle;
+		this.header.handleSeed = nextHandle;
 	}
 
 	public toString(): string {
@@ -165,7 +174,46 @@ export class CadDocument implements IHandledCadObject {
 	}
 
 	public updateCollections(createDictionaries: boolean, createDefaults: boolean): void {
-		// TODO: Implement when dictionary/collection types are converted
+		if (createDictionaries && this.rootDictionary == null) {
+			this.rootDictionary = CadDictionary.createRoot();
+		} else if (this.rootDictionary == null) {
+			return;
+		}
+
+		const groups = this.updateCollectionDict(CadDictionary.AcadGroup, createDictionaries);
+		this.groups = groups.success && groups.dictionary
+			? new GroupCollection(groups.dictionary)
+			: null;
+
+		const layouts = this.updateCollectionDict(CadDictionary.AcadLayout, createDictionaries);
+		this.layouts = layouts.success && layouts.dictionary
+			? new LayoutCollection(layouts.dictionary)
+			: null;
+
+		const colors = this.updateCollectionDict(CadDictionary.AcadColor, createDictionaries);
+		this.colors = colors.success && colors.dictionary
+			? new ColorCollection(colors.dictionary)
+			: null;
+
+		const materials = this.updateCollectionDict(CadDictionary.AcadMaterial, createDictionaries);
+		if (materials.success && materials.dictionary) {
+			this.materials = new MaterialCollection(materials.dictionary);
+			if (createDefaults) {
+				this.materials.createDefaults();
+			}
+		} else {
+			this.materials = null;
+		}
+
+		const { success, dictionary } = this.updateCollectionDict(CadDictionary.AcadMLineStyle, createDictionaries);
+		if (success && dictionary) {
+			this.mLineStyles = new MLineStyleCollection(dictionary);
+			if (createDefaults) {
+				this.mLineStyles.createDefaults();
+			}
+		} else {
+			this.mLineStyles = null;
+		}
 	}
 
 	public updateDxfClasses(reset: boolean): void {
@@ -173,10 +221,40 @@ export class CadDocument implements IHandledCadObject {
 			this.classes.clear();
 		}
 		DxfClassCollection.updateDxfClasses(this);
+
+		for (const item of this.classes ?? []) {
+			item.instanceCount = Array.from(this._cadObjects.values())
+				.filter((cadObject): cadObject is CadObject => cadObject instanceof CadObject)
+				.filter((cadObject) => cadObject.objectName === item.dxfName)
+				.length;
+		}
 	}
 
 	public updateImageReactors(): void {
-		// TODO: Implement when image types are converted
+		const reactors = Array.from(this._cadObjects.values())
+			.filter((cadObject): cadObject is ImageDefinitionReactor => cadObject instanceof ImageDefinitionReactor);
+
+		for (const reactor of reactors) {
+			this.removeCadObject(reactor);
+		}
+
+		const rasterImages = Array.from(this._cadObjects.values())
+			.filter((cadObject): cadObject is RasterImage => cadObject instanceof RasterImage);
+
+		for (const image of rasterImages) {
+			if (image.definition == null) {
+				image.definitionReactor = null;
+				continue;
+			}
+
+			const reactor = new ImageDefinitionReactor();
+			reactor.owner = image;
+			reactor.image = image;
+
+			image.definitionReactor = reactor;
+			this.addCadObject(reactor);
+			image.definition.addReactor(reactor);
+		}
 	}
 
 	/** @internal */
@@ -186,8 +264,12 @@ export class CadDocument implements IHandledCadObject {
 		}
 
 		if (collection instanceof CadObject) {
-			collection.owner = this;
-			this.addCadObject(collection);
+			if (collection.owner == null) {
+				collection.owner = this;
+			}
+			if (collection.document == null) {
+				this.addCadObject(collection);
+			}
 		}
 
 		if ('onAdd' in collection) {
@@ -206,6 +288,12 @@ export class CadDocument implements IHandledCadObject {
 		else if (collection instanceof UCSTable) this.uCSs = collection;
 		else if (collection instanceof ViewsTable) this.views = collection;
 		else if (collection instanceof VPortsTable) this.vPorts = collection;
+
+		if (typeof collection[Symbol.iterator] === 'function') {
+			for (const item of collection as Iterable<any>) {
+				this.wireCollectionItem(item);
+			}
+		}
 	}
 
 	/** @internal */
@@ -219,10 +307,13 @@ export class CadDocument implements IHandledCadObject {
 		}
 
 		if (cadObject.handle === 0 || this._cadObjects.has(cadObject.handle)) {
-			// TODO: const nextHandle = this.header.handleSeed;
-			const nextHandle = this._cadObjects.size;
+			const nextHandle = this.header?.handleSeed ?? this._cadObjects.size;
 			cadObject.handle = nextHandle;
-			// TODO: this.header.handleSeed = nextHandle + 1;
+			if (this.header) {
+				this.header.handleSeed = nextHandle + 1;
+			}
+		} else if (this.header && cadObject.handle >= this.header.handleSeed) {
+			this.header.handleSeed = cadObject.handle + 1;
 		}
 
 		this._cadObjects.set(cadObject.handle, cadObject);
@@ -230,19 +321,7 @@ export class CadDocument implements IHandledCadObject {
 	}
 
 	private onAdd(sender: any, e: CollectionChangedEventArgs): void {
-		this.addCadObject(e.item);
-		this.registerBlockMarkers(e.item);
-
-		// Wire sub-collections (e.g., BlockRecord.entities) to this document
-		if (e.item && 'entities' in e.item && e.item.entities) {
-			const entities = e.item.entities;
-			if ('onAdd' in (entities as object)) {
-				(entities as any).onAdd = this.onAdd.bind(this);
-			}
-			if ('onRemove' in (entities as object)) {
-				(entities as any).onRemove = this.onRemove.bind(this);
-			}
-		}
+		this.wireCollectionItem(e.item);
 	}
 
 	private onRemove(sender: any, e: CollectionChangedEventArgs): void {
@@ -283,7 +362,48 @@ export class CadDocument implements IHandledCadObject {
 	}
 
 	private updateCollectionDict(dictName: string, createDictionary: boolean): { success: boolean; dictionary: any | null } {
-		// TODO: Implement when CadDictionary is converted
-		return { success: false, dictionary: null };
+		let dictionary = this.rootDictionary?.getEntry?.(dictName) ?? null;
+		if (!dictionary && createDictionary && this.rootDictionary) {
+			dictionary = new CadDictionary(dictName);
+			this.rootDictionary.add(dictionary);
+		}
+
+		return { success: dictionary != null, dictionary };
+	}
+
+	private wireCollectionItem(item: any): void {
+		if (item instanceof CadDictionary) {
+			this.registerCollection(item);
+			return;
+		}
+
+		if (item instanceof CadObject && item.document == null) {
+			this.addCadObject(item);
+		}
+
+		this.registerBlockMarkers(item);
+		this.wireEntityCollection(item);
+	}
+
+	private wireEntityCollection(item: any): void {
+		if (!item || !('entities' in item) || !item.entities) {
+			return;
+		}
+
+		const entities = item.entities;
+		if ('onAdd' in (entities as object)) {
+			(entities as any).onAdd = this.onAdd.bind(this);
+		}
+		if ('onRemove' in (entities as object)) {
+			(entities as any).onRemove = this.onRemove.bind(this);
+		}
+
+		if (typeof entities[Symbol.iterator] === 'function') {
+			for (const entity of entities as Iterable<any>) {
+				if (entity instanceof CadObject && entity.document == null) {
+					this.addCadObject(entity);
+				}
+			}
+		}
 	}
 }

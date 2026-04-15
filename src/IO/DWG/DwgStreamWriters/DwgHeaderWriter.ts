@@ -158,7 +158,7 @@ export class DwgHeaderWriter extends DwgSectionIO {
 
 		//Common:
 		//B: TILEMODE
-		this._writer.writeBit(this._header.showModelSpaceInPaperSpace);
+		this._writer.writeBit(this._header.showModelSpace);
 		//B : PLIMCHECK
 		this._writer.writeBit(this._header.paperSpaceLimitsChecking);
 		//B : VISRETAIN
@@ -245,7 +245,7 @@ export class DwgHeaderWriter extends DwgSectionIO {
 		//BS : SURFU
 		this._writer.writeBitShort(this._header.surfaceDensityM);
 		//BS : SURFV
-		this._writer.writeBitShort(this._header.surfaceDensityM);
+		this._writer.writeBitShort(this._header.surfaceDensityN);
 		//BS : SURFTYPE
 		this._writer.writeBitShort(this._header.surfaceType);
 		//BS : SURFTAB1
@@ -355,7 +355,10 @@ export class DwgHeaderWriter extends DwgSectionIO {
 		//H: DIMSTYLE (hard pointer)
 		this._writer.handleReferenceTyped(DwgReferenceType.HardPointer, this._header.currentDimensionStyle);
 		//H: CMLSTYLE (hard pointer)
-		this._writer.handleReferenceTyped(DwgReferenceType.HardPointer, this._header.currentMLineStyleName as any);
+		this._writer.handleReferenceTyped(
+			DwgReferenceType.HardPointer,
+			this._document.mLineStyles?.get(this._header.currentMLineStyleName) ?? null,
+		);
 
 		//R2000+ Only:
 		if (this.R2000Plus) {
@@ -377,7 +380,7 @@ export class DwgHeaderWriter extends DwgSectionIO {
 		//BD: ELEVATION(PSPACE)
 		this._writer.writeBitDouble(this._header.paperSpaceElevation);
 		//3BD: UCSORG(PSPACE)
-		this._writer.write3BitDouble(this._header.paperSpaceUcs as any);
+		this._writer.write3BitDouble(this._header.paperSpaceUcs.origin);
 		//3BD: UCSXDIR(PSPACE)
 		this._writer.write3BitDouble(this._header.paperSpaceXAxis);
 		//3BD: UCSYDIR(PSPACE)

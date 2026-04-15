@@ -49,4 +49,20 @@ describe('CadDocumentTests', () => {
 
     expect(doc).not.toBeNull();
   });
+
+  it('RestoreHandlesUpdatesHandleSeed', () => {
+    const doc = new CadDocument();
+    const line = new Line();
+
+    if (doc.entities && typeof doc.entities.add === 'function') {
+      doc.entities.add(line);
+    }
+
+    doc.header.handleSeed = 9999;
+    doc.restoreHandles();
+
+    const handles = [...(doc as any)._cadObjects.keys()] as number[];
+    expect(doc.header.handleSeed).toBe(Math.max(...handles) + 1);
+    expect(doc.header.handleSeed).not.toBe(9999);
+  });
 });

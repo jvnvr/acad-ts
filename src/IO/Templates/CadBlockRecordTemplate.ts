@@ -62,6 +62,8 @@ export class CadBlockRecordTemplate extends CadTableEntryTemplate<BlockRecord> i
 
 	protected override build(builder: CadDocumentBuilder): void {
 		super.build(builder);
+		this.CadObject.insertHandles = [...this.InsertHandles];
+		this.CadObject.ownedObjectHandles = Array.from(this.OwnedObjectsHandlers);
 
 		const layout = builder.TryGetCadObject<Layout>(this.LayoutHandle);
 		if (layout) {

@@ -12,6 +12,7 @@ import { TextAttachmentDirectionType } from '../TextAttachmentDirectionType.js';
 import { TextAttachmentPointType } from '../TextAttachmentPoint.js';
 import { TextAttachmentType } from '../TextAttachmentType.js';
 import { XYZ } from '../Math/XYZ.js';
+import { MultiLeaderObjectContextData } from '../Objects/MultiLeaderObjectContextData.js';
 import { LineType } from '../Tables/LineType.js';
 
 export class MultiLeaderBlockAttribute {
@@ -49,7 +50,7 @@ export class MultiLeader extends Entity {
 
 	contentType: LeaderContentType = LeaderContentType.MText;
 
-	contextData: any = null;
+	contextData: MultiLeaderObjectContextData = new MultiLeaderObjectContextData();
 
 	enableAnnotationScale: boolean = false;
 

@@ -74,7 +74,7 @@ export class CadEntityTemplate extends CadTemplateT<Entity> {
 		} else if (this.bookColorName && this.bookColorName.length > 0 &&
 			builder.DocumentToBuild != null &&
 			builder.DocumentToBuild.colors != null) {
-			const bookColor = builder.DocumentToBuild.colors.TryGet(this.bookColorName);
+			const bookColor = builder.DocumentToBuild.colors.tryGet(this.bookColorName);
 			if (bookColor) {
 				this.CadObject.bookColor = bookColor;
 			}

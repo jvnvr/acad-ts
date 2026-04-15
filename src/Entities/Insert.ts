@@ -10,6 +10,7 @@ import { AttributeEntity } from './AttributeEntity.js';
 import { AttributeDefinition } from './AttributeDefinition.js';
 import { CollectionChangedEventArgs } from '../CollectionChangedEventArgs.js';
 import { XYZ } from '../Math/XYZ.js';
+import { Transform } from '../Math/Transform.js';
 
 export class Insert extends Entity {
 	attributes: SeqendCollection<AttributeEntity> = new SeqendCollection<AttributeEntity>();
@@ -103,7 +104,9 @@ export class Insert extends Entity {
 			const attDefs = (block as any).attributeDefinitions;
 			if (attDefs) {
 				for (const item of attDefs) {
-					this.attributes.push(new AttributeEntity(item));
+					const attribute = new AttributeEntity(item);
+					this.attributes.push(attribute);
+					this.applyAttributeTransform(attribute);
 				}
 			}
 		}
@@ -135,9 +138,16 @@ export class Insert extends Entity {
 		return null;
 	}
 
-	getTransform(): any {
-		// TODO: Matrix4 operations not available
-		return null;
+	getTransform(): Transform {
+		return new Transform(
+			this.insertPoint,
+			new XYZ(this.xScale, this.yScale, this.zScale),
+			new XYZ(0, 0, this.rotation),
+		);
+	}
+
+	applyAttributeTransform(attribute: AttributeEntity): void {
+		attribute.applyTransform(this.getTransform());
 	}
 
 	updateAttributes(): void {
@@ -152,7 +162,9 @@ export class Insert extends Entity {
 
 		for (const attdef of attDefs) {
 			if (!attTags.includes(attdef.tag)) {
-				this.attributes.push(new AttributeEntity(attdef));
+				const attribute = new AttributeEntity(attdef);
+				this.attributes.push(attribute);
+				this.applyAttributeTransform(attribute);
 			}
 		}
 	}
@@ -163,7 +175,7 @@ export class Insert extends Entity {
 
 		if (this.block == null) return;
 
-		const existing = doc.blockRecords?.get(this.block.name);
+		const existing = doc.blockRecords?.tryGetValue(this.block.name);
 		if (existing) {
 			this.block = existing;
 		} else {

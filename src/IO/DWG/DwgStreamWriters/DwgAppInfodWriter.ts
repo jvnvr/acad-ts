@@ -20,7 +20,7 @@ export class DwgAppInfoWriter extends DwgSectionIO {
 	}
 
 	write(): void {
-		const version = '1.0.0.0';
+		const version = '3.4.29.0';
 
 		//UInt32	4	class_version (default: 3)
 		this._writer.writeInt(3);

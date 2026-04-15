@@ -166,22 +166,32 @@ export class DwgHeaderHandlesCollection {
 		let entry: TableEntry | null;
 
 		entry = builder.TryGetCadObject<TableEntry>(this.CLAYER);
-		if (entry) { header.currentLayerName = entry.name; }
+		if (entry && builder.DocumentToBuild.layers?.tryGetValue(entry.name)) {
+			header.currentLayerName = entry.name;
+		}
 
 		entry = builder.TryGetCadObject<TableEntry>(this.CELTYPE);
-		if (entry) { header.currentLineTypeName = entry.name; }
+		if (entry && builder.DocumentToBuild.lineTypes?.tryGetValue(entry.name)) {
+			header.currentLineTypeName = entry.name;
+		}
 
 		entry = builder.TryGetCadObject<TableEntry>(this.CMLSTYLE);
 		if (entry) { header.currentMLineStyleName = entry.name; }
 
 		entry = builder.TryGetCadObject<TableEntry>(this.TEXTSTYLE);
-		if (entry) { header.currentTextStyleName = entry.name; }
+		if (entry && builder.DocumentToBuild.textStyles?.tryGetValue(entry.name)) {
+			header.currentTextStyleName = entry.name;
+		}
 
 		entry = builder.TryGetCadObject<TableEntry>(this.DIMTXSTY);
-		if (entry) { header.dimensionTextStyleName = entry.name; }
+		if (entry && builder.DocumentToBuild.textStyles?.tryGetValue(entry.name)) {
+			header.dimensionTextStyleName = entry.name;
+		}
 
 		entry = builder.TryGetCadObject<TableEntry>(this.DIMSTYLE);
-		if (entry) { header.currentDimensionStyleName = entry.name; }
+		if (entry && builder.DocumentToBuild.dimensionStyles?.tryGetValue(entry.name)) {
+			header.currentDimensionStyleName = entry.name;
+		}
 
 		let record: BlockRecord | null;
 

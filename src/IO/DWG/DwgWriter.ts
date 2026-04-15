@@ -21,6 +21,7 @@ import { DwgAuxHeaderWriter } from './DwgStreamWriters/DwgAuxHeaderWriter.js';
 import { DwgPreviewWriter } from './DwgStreamWriters/DwgPreviewWriter.js';
 import { DwgAppInfoWriter } from './DwgStreamWriters/DwgAppInfodWriter.js';
 import { DwgSummaryInfoWriter } from './DwgStreamWriters/DwgSummaryInfoWriter.js';
+import { ViewportEntityControl } from '../../Tables/Collections/ViewportEntityControl.js';
 import './DwgStreamWriters/DwgStreamWriterFactory.js';
 
 export class DwgWriter extends CadWriterBase<DwgWriterConfiguration> {
@@ -46,6 +47,12 @@ export class DwgWriter extends CadWriterBase<DwgWriterConfiguration> {
 
 	override Write(): void {
 		super.Write();
+
+		if (this._version < ACadVersion.AC1018 && !this._document.vEntityControl) {
+			const viewportEntityControl = new ViewportEntityControl();
+			this._document.registerCollection(viewportEntityControl);
+			this._document.vEntityControl = viewportEntityControl;
+		}
 
 		this.getFileHeaderWriter();
 
@@ -215,7 +222,7 @@ export class DwgWriter extends CadWriterBase<DwgWriterConfiguration> {
 	}
 
 	private writeObjFreeSpace(): void {
-		const data = new Uint8Array(37);
+		const data = new Uint8Array(53);
 		const view = new DataView(data.buffer);
 		let offset = 0;
 
@@ -234,10 +241,14 @@ export class DwgWriter extends CadWriterBase<DwgWriterConfiguration> {
 		view.setUint32(offset, 0, true); offset += 4;
 		// UInt8: Number of 64-bit values that follow (ODA writes 4)
 		data[offset] = 4; offset += 1;
-		// 4 x UInt32 values (ODA standard)
+		// 8 x UInt32 values (ODA standard)
 		view.setUint32(offset, 0x00000032, true); offset += 4;
 		view.setUint32(offset, 0x00000000, true); offset += 4;
 		view.setUint32(offset, 0x00000064, true); offset += 4;
+		view.setUint32(offset, 0x00000000, true); offset += 4;
+		view.setUint32(offset, 0x00000200, true); offset += 4;
+		view.setUint32(offset, 0x00000000, true); offset += 4;
+		view.setUint32(offset, 0xffffffff, true); offset += 4;
 		view.setUint32(offset, 0x00000000, true); offset += 4;
 
 		this._fileHeaderWriter.addSection(DwgSectionDefinition.ObjFreeSpace, data, true);

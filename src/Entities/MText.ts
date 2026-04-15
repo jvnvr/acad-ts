@@ -73,7 +73,7 @@ export class MText extends Entity implements IText {
 		this._height = value;
 	}
 
-	horizontalWidth: number = 0;
+	horizontalWidth: number = 0.9;
 
 	insertPoint: XYZ = new XYZ(0, 0, 0);
 
@@ -134,12 +134,12 @@ export class MText extends Entity implements IText {
 		this._value = v;
 	}
 
-	verticalHeight: number = 0;
+	verticalHeight: number = 0.2;
 
 	private _height: number = 1.0;
 	private _style: TextStyle = TextStyle.Default;
 	private _value: string = '';
-	private _columnData: TextColumnData | null = null;
+	private _columnData: TextColumnData | null = new TextColumnData();
 
 	constructor() {
 		super();

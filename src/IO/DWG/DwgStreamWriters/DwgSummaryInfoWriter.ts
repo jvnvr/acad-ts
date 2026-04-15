@@ -21,7 +21,7 @@ export class DwgSummaryInfoWriter extends DwgSectionIO {
 		super(version);
 		this._version = version;
 		this._encoding = encoding;
-		this._writer = DwgStreamWriterBase.getStreamWriter(version, stream, 'utf-16le');
+		this._writer = DwgStreamWriterBase.getStreamWriter(version, stream, encoding);
 
 		if (version < ACadVersion.AC1021) {
 			this._writeStringMethod = (value: string) => this.writeUnicodeString(value);
@@ -64,12 +64,9 @@ export class DwgSummaryInfoWriter extends DwgSectionIO {
 	}
 
 	private writeUnicodeString(value: string): void {
-		if (!value || value.length === 0) {
-			this._writer.writeRawShort(0);
-			return;
-		}
-		const bytes = encodeCadString(value, this._encoding);
-		this._writer.writeRawShort(bytes.length);
+		const bytes = encodeCadString(value ?? '', this._encoding);
+		this._writer.writeRawShort(bytes.length + 1);
 		this._writer.writeBytes(bytes);
+		this._writer.writeByte(0);
 	}
 }

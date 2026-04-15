@@ -2,9 +2,9 @@ import * as path from 'path';
 import * as fs from 'fs';
 
 const SAMPLES_FOLDER = path.resolve(__dirname, '../samples');
-const OUTPUT_SAMPLES_FOLDER = path.resolve(__dirname, '../samples/out');
-const OUTPUT_SINGLE_CASES_FOLDER = path.resolve(__dirname, '../samples/out/single_cases');
-const OUTPUT_SVG_FOLDER = path.resolve(__dirname, '../samples/out/svg');
+const OUTPUT_SAMPLES_FOLDER = path.resolve(__dirname, '../output');
+const OUTPUT_SINGLE_CASES_FOLDER = path.resolve(__dirname, '../output/single_cases');
+const OUTPUT_SVG_FOLDER = path.resolve(__dirname, '../output/svg');
 
 export const TestVariables = {
   decimalPrecision: 5,

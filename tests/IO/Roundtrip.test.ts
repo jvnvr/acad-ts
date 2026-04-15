@@ -9,6 +9,12 @@ import { DwgReader } from '../../src/IO/DWG/DwgReader.js';
 import { DwgWriter } from '../../src/IO/DWG/DwgWriter.js';
 import { ACadVersion } from '../../src/ACadVersion.js';
 import { CadDocument } from '../../src/CadDocument.js';
+import { Mesh } from '../../src/Entities/Mesh.js';
+import { PdfUnderlay } from '../../src/Entities/PdfUnderlay.js';
+import { RasterImage } from '../../src/Entities/RasterImage.js';
+import { Wipeout } from '../../src/Entities/Wipeout.js';
+import { TableStyle } from '../../src/Objects/TableStyle.js';
+import { Layout } from '../../src/Objects/Layout.js';
 
 const roundtripOutDir = path.join(TestVariables.outputSamplesFolder, 'roundtrip');
 if (!fs.existsSync(roundtripOutDir)) {
@@ -66,6 +72,64 @@ function assertDocumentDefaults(doc: CadDocument): void {
 
 describe('Roundtrip Tests', () => {
   describe('DWG Roundtrip', () => {
+    it('preserves AC1018 image, underlay, and mesh entities on roundtrip', () => {
+      const sample = dwgFiles.find(f => f.fileName === 'sample_AC1018.dwg');
+      expect(sample).toBeDefined();
+
+      const data = readFileAsArrayBuffer(sample!.path);
+      const doc = new DwgReader(data).Read();
+
+      const buffer = new ArrayBuffer(16 * 1024 * 1024);
+      const writer = new DwgWriter(buffer, doc);
+      writer.Write();
+
+      const outPath = path.join(roundtripOutDir, 'rt_sample_AC1018.dwg');
+      fs.writeFileSync(outPath, new Uint8Array(buffer, 0, writer.bytesWritten));
+
+      const rereadData = readFileAsArrayBuffer(outPath);
+      const notifications: string[] = [];
+      const reread = new DwgReader(rereadData);
+      reread.OnNotification = (_sender, e) => notifications.push(e.message);
+      const doc2 = reread.Read();
+      const entities = [...doc2.entities];
+
+      expect(entities.length).toBeGreaterThanOrEqual(142);
+      expect(entities.filter(e => e instanceof Mesh)).toHaveLength(2);
+      expect(entities.filter(e => e instanceof PdfUnderlay)).toHaveLength(1);
+      expect(entities.filter(e => e instanceof RasterImage)).toHaveLength(1);
+      expect(entities.filter(e => e instanceof Wipeout)).toHaveLength(1);
+      expect(
+        notifications.filter(m => /ACAD_IMAGE_VARS|ACAD_IMAGE_DICT|ACAD_PDFDEFINITIONS|2243|2244|3334/i.test(m)),
+      ).toHaveLength(0);
+    });
+
+    it('preserves AC1018 table-style XRecord handles and skips the model *Active VPort on roundtrip', () => {
+      const sample = dwgFiles.find(f => f.fileName === 'sample_AC1018.dwg');
+      expect(sample).toBeDefined();
+
+      const data = readFileAsArrayBuffer(sample!.path);
+      const doc = new DwgReader(data).Read();
+
+      expect(doc.getCadObject(135)).toBeInstanceOf(TableStyle);
+
+      const buffer = new ArrayBuffer(16 * 1024 * 1024);
+      const writer = new DwgWriter(buffer, doc);
+      writer.Write();
+
+      const outPath = path.join(roundtripOutDir, 'rt_sample_AC1018_table-style-layout.dwg');
+      fs.writeFileSync(outPath, new Uint8Array(buffer, 0, writer.bytesWritten));
+
+      const rereadData = readFileAsArrayBuffer(outPath);
+      const reread = new DwgReader(rereadData);
+      const doc2 = reread.Read();
+      const xrecordTemplate = (reread as any)._builder.GetObjectTemplate(3966) as { _entries: Array<[number, number]> };
+
+      expect(xrecordTemplate._entries).toContainEqual([330, 135]);
+
+      const modelLayout = doc2.getCadObject(34) as Layout;
+      expect(modelLayout.lastActiveViewport).toBeNull();
+    });
+
     describe.each(dwgFiles.map(f => [f.fileName, f]))('%s', (_name, test) => {
       it('Read -> Write -> Read', () => {
         // 1. Read original

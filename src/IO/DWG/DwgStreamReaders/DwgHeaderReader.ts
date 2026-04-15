@@ -274,7 +274,7 @@ export class DwgHeaderReader extends DwgSectionIO {
 		this._header.paperSpaceLimitsMin = this._reader.read2RawDouble();
 		this._header.paperSpaceLimitsMax = this._reader.read2RawDouble();
 		this._header.paperSpaceElevation = this._reader.readBitDouble();
-		(this._header as any).paperSpaceUcs = this._reader.read3BitDouble();
+		this._header.paperSpaceUcs.origin = this._reader.read3BitDouble();
 		this._header.paperSpaceXAxis = this._reader.read3BitDouble();
 		this._header.paperSpaceYAxis = this._reader.read3BitDouble();
 
