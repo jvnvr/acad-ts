@@ -12,8 +12,12 @@ import { DimensionType } from './DimensionType.js';
 import { AttachmentPointType } from './AttachmentPointType.js';
 import { LineSpacingStyleType } from './LineSpacingStyleType.js';
 import { CollectionChangedEventArgs } from '../CollectionChangedEventArgs.js';
+import { DxfClassMap } from '../DxfClassMap.js';
 import { MText } from './MText.js';
 import { Point } from './Point.js';
+import { ExtendedData } from '../XData/ExtendedData.js';
+import { ExtendedDataInteger16 } from '../XData/ExtendedDataInteger16.js';
+import { ExtendedDataRecord } from '../XData/ExtendedDataRecord.js';
 import { XYZ } from '../Math/XYZ.js';
 
 export abstract class Dimension extends Entity {
@@ -45,8 +49,8 @@ export abstract class Dimension extends Entity {
 	flipArrow2: boolean = false;
 
 	get hasStyleOverride(): boolean {
-		for (const appName of this.extendedData.getExtendedDataByName().keys()) {
-			if (appName === AppId.DefaultName.toUpperCase() || appName.startsWith(`${AppId.DefaultName.toUpperCase()}_DSTYLE`)) {
+		for (const [appName, data] of this.extendedData.getExtendedDataByName()) {
+			if (data.records.length > 0 && (appName === AppId.DefaultName.toUpperCase() || appName.startsWith(`${AppId.DefaultName.toUpperCase()}_DSTYLE`))) {
 				return true;
 			}
 		}
@@ -117,7 +121,13 @@ export abstract class Dimension extends Entity {
 	}
 
 	override applyTransform(transform: any): void {
-		// TODO: Complex transform with world matrix
+		this.definitionPoint = this.applyTransformToPoint(transform, this.definitionPoint);
+		this.insertionPoint = this.applyTransformToPoint(transform, this.insertionPoint);
+		this.textMiddlePoint = this.applyTransformToPoint(transform, this.textMiddlePoint);
+		this.normal = this.applyTransformToVector(transform, this.normal).normalize();
+		if (typeof transform?.eulerRotation?.z === 'number') {
+			this.textRotation += transform.eulerRotation.z;
+		}
 	}
 
 	override clone(): CadObject {
@@ -131,8 +141,22 @@ export abstract class Dimension extends Entity {
 		if (!this.hasStyleOverride) {
 			return this.style;
 		}
-		// TODO: Style override map not available
-		return this.style;
+
+		const style = this.style.clone() as DimensionStyle;
+		const map = this.getStyleOverrideMap();
+		if (map == null) {
+			return style;
+		}
+
+		const classMap = DxfClassMap.Create(DimensionStyle);
+		for (const [code, value] of map) {
+			const property = classMap.dxfProperties.get(code);
+			if (property != null) {
+				property.setValue(code, style, value);
+			}
+		}
+
+		return style;
 	}
 
 	getMeasurementText(style?: DimensionStyle): string {
@@ -147,17 +171,85 @@ export abstract class Dimension extends Entity {
 	}
 
 	getStyleOverrideMap(): Map<number, unknown> | null {
-		// TODO: DxfClassMap not available
-		return null;
+		const map = new Map<number, unknown>();
+		const classMap = DxfClassMap.Create(DimensionStyle);
+		for (const [name, extendedData] of this.extendedData.getExtendedDataByName()) {
+			if (name !== AppId.DefaultName.toUpperCase() && !name.startsWith(`${AppId.DefaultName.toUpperCase()}_${DimensionStyle.StyleOverrideEntryName}`)) {
+				continue;
+			}
+
+			for (let index = 0; index < extendedData.records.length - 1; index++) {
+				const codeRecord = extendedData.records[index];
+				const valueRecord = extendedData.records[index + 1];
+				if (!(codeRecord instanceof ExtendedDataInteger16)) {
+					continue;
+				}
+
+				if (classMap.dxfProperties.has(codeRecord.value)) {
+					map.set(codeRecord.value, valueRecord.rawValue);
+				}
+				index += 1;
+			}
+		}
+
+		return map.size > 0 ? map : null;
 	}
 
 	setDimensionOverride(styleOverride: DimensionStyle): void {
-		// TODO: DxfClassMap not available
+		const current = this.style;
+		const classMap = DxfClassMap.Create(DimensionStyle);
+		const overrides = new Map<number, unknown>();
+
+		for (const [code, property] of classMap.dxfProperties) {
+			const baseValue = property.getRawValue(current);
+			const overrideValue = property.getRawValue(styleOverride);
+			if (overrideValue !== undefined && overrideValue !== null && overrideValue !== baseValue) {
+				overrides.set(code, overrideValue);
+			}
+		}
+
+		this.setStyleOverrideMap(overrides);
 	}
 
 	setStyleOverrideMap(map: Map<number, unknown> | null): void {
-		void map;
-		// TODO: ExtendedData not available
+		const appName = `${AppId.DefaultName}_${DimensionStyle.StyleOverrideEntryName}`;
+		const nextRecords: ExtendedDataRecord[] = [];
+		if (map != null) {
+			const classMap = DxfClassMap.Create(DimensionStyle);
+			for (const [code, value] of map) {
+				const property = classMap.dxfProperties.get(code);
+				if (property == null) {
+					continue;
+				}
+
+				property.storedValue = value;
+				nextRecords.push(...property.toXDataRecords());
+			}
+		}
+
+		const existing = this.extendedData.tryGetByName(appName);
+		if (map == null || map.size === 0) {
+			if (existing.found && existing.value != null) {
+				for (const [app] of this.extendedData) {
+					if (app.name.toUpperCase() === appName.toUpperCase()) {
+						this.extendedData.set(app, new ExtendedData());
+					}
+				}
+			}
+			return;
+		}
+
+		const records = new ExtendedData(nextRecords);
+		if (existing.found) {
+			for (const [app] of this.extendedData) {
+				if (app.name.toUpperCase() === appName.toUpperCase()) {
+					this.extendedData.set(app, records);
+				}
+			}
+			return;
+		}
+
+		this.extendedData.addByName(appName, records);
 	}
 
 	updateBlock(): void {

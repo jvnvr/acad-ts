@@ -1,6 +1,7 @@
 import { Dimension } from './Dimension.js';
 import { DxfFileToken } from '../DxfFileToken.js';
 import { DxfSubclassMarker } from '../DxfSubclassMarker.js';
+import { BoundingBox } from '../Math/BoundingBox.js';
 import { ObjectType } from '../Types/ObjectType.js';
 import { DimensionType } from './DimensionType.js';
 import { XYZ } from '../Math/XYZ.js';
@@ -33,7 +34,13 @@ export class DimensionAligned extends Dimension {
 		return distanceFrom(this.secondPoint, this.definitionPoint);
 	}
 	set offset(value: number) {
-		// TODO: XYZ.Cross not available for perpendicular calculation
+		const direction = Dimension.subtractPoints(this.secondPoint, this.firstPoint);
+		const perpendicular = this.normal.cross(direction).normalize();
+		this.definitionPoint = new XYZ(
+			this.secondPoint.x + perpendicular.x * value,
+			this.secondPoint.y + perpendicular.y * value,
+			this.secondPoint.z + perpendicular.z * value,
+		);
 	}
 
 	secondPoint: XYZ = new XYZ(0, 0, 0);
@@ -62,22 +69,12 @@ export class DimensionAligned extends Dimension {
 
 	override applyTransform(transform: any): void {
 		super.applyTransform(transform);
-		// TODO: Transform FirstPoint and SecondPoint
+		this.firstPoint = this.applyTransformToPoint(transform, this.firstPoint);
+		this.secondPoint = this.applyTransformToPoint(transform, this.secondPoint);
 	}
 
-	override getBoundingBox(): any {
-		return {
-			min: {
-				x: Math.min(this.firstPoint.x, this.secondPoint.x),
-				y: Math.min(this.firstPoint.y, this.secondPoint.y),
-				z: Math.min(this.firstPoint.z, this.secondPoint.z),
-			},
-			max: {
-				x: Math.max(this.firstPoint.x, this.secondPoint.x),
-				y: Math.max(this.firstPoint.y, this.secondPoint.y),
-				z: Math.max(this.firstPoint.z, this.secondPoint.z),
-			},
-		};
+	override getBoundingBox(): BoundingBox {
+		return BoundingBox.FromPoints([this.firstPoint, this.secondPoint, this.definitionPoint]);
 	}
 
 	override updateBlock(): void {

@@ -43,7 +43,10 @@ export class Face3D extends Entity {
 	}
 
 	override applyTransform(transform: any): void {
-		// TODO: transform.ApplyTransform not available
+		this.firstCorner = this.applyTransformToPoint(transform, this.firstCorner);
+		this.secondCorner = this.applyTransformToPoint(transform, this.secondCorner);
+		this.thirdCorner = this.applyTransformToPoint(transform, this.thirdCorner);
+		this.fourthCorner = this.applyTransformToPoint(transform, this.fourthCorner);
 	}
 }
 

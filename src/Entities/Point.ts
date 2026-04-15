@@ -34,7 +34,8 @@ export class Point extends Entity {
 	}
 
 	override applyTransform(transform: any): void {
-		// TODO: transform.ApplyTransform not available
+		this.location = this.applyTransformToPoint(transform, this.location);
+		this.normal = this.applyTransformToVector(transform, this.normal).normalize();
 	}
 
 	override getBoundingBox(): BoundingBox {

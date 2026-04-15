@@ -14,6 +14,7 @@ import type { BookColor } from '../Objects/BookColor.js';
 import type { Material } from '../Objects/Material.js';
 import { XYZ } from '../Math/XYZ.js';
 import { XY } from '../Math/XY.js';
+import { Transform } from '../Math/Transform.js';
 
 function isBlockRecordOwner(value: unknown): value is BlockRecord {
 	return value != null && typeof value === 'object' && 'blockEntity' in (value as any);
@@ -67,19 +68,17 @@ export abstract class Entity extends CadObject implements IEntity {
 	}
 
 	applyRotation(axis: XYZ, rotation: number): void {
-		// TODO: Transform.CreateRotation not available
-		// const transform = Transform.CreateRotation(axis, rotation);
-		// this.applyTransform(transform);
+		this.applyTransform(Transform.CreateRotation(axis, rotation));
 	}
 
 	applyScaling(scale: XYZ, origin?: XYZ): void {
-		// TODO: Transform.CreateScaling not available
+		this.applyTransform(Transform.CreateScaling(scale, origin));
 	}
 
 	abstract applyTransform(transform: any /* Transform */): void;
 
 	applyTranslation(translation: XYZ): void {
-		// TODO: Transform.CreateTranslation not available
+		this.applyTransform(Transform.CreateTranslation(translation));
 	}
 
 	override clone(): CadObject {
@@ -192,6 +191,41 @@ export abstract class Entity extends CadObject implements IEntity {
 			transPoints.push(new XY(p.x * cos - p.y * sin, p.x * sin + p.y * cos));
 		}
 		return transPoints;
+	}
+
+	protected applyTransformToPoint(transform: unknown, point: XYZ): XYZ {
+		if (!(transform instanceof Transform)) {
+			return point;
+		}
+
+		return transform.applyTransform(point);
+	}
+
+	protected applyTransformToVector(transform: unknown, vector: XYZ): XYZ {
+		if (!(transform instanceof Transform)) {
+			return vector;
+		}
+
+		const origin = transform.applyTransform(XYZ.Zero);
+		const transformed = transform.applyTransform(vector);
+		return new XYZ(
+			transformed.x - origin.x,
+			transformed.y - origin.y,
+			transformed.z - origin.z,
+		);
+	}
+
+	protected getTransformAxisScale(transform: unknown): XYZ {
+		if (!(transform instanceof Transform)) {
+			return new XYZ(1, 1, 1);
+		}
+
+		const matrix = transform.matrix;
+		return new XYZ(
+			Math.hypot(matrix.m00, matrix.m10, matrix.m20),
+			Math.hypot(matrix.m01, matrix.m11, matrix.m21),
+			Math.hypot(matrix.m02, matrix.m12, matrix.m22),
+		);
 	}
 
 	protected applyWorldMatrix(

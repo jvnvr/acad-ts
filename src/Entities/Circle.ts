@@ -3,6 +3,7 @@ import { BoundingBox } from '../Math/BoundingBox.js';
 import { DxfFileToken } from '../DxfFileToken.js';
 import { DxfSubclassMarker } from '../DxfSubclassMarker.js';
 import { ObjectType } from '../Types/ObjectType.js';
+import { Transform } from '../Math/Transform.js';
 import { XYZ } from '../Math/XYZ.js';
 
 export class Circle extends Entity {
@@ -45,7 +46,15 @@ export class Circle extends Entity {
 	}
 
 	override applyTransform(transform: any): void {
-		// TODO: Transform operations not available
+		if (!(transform instanceof Transform)) {
+			return;
+		}
+
+		this.center = this.applyTransformToPoint(transform, this.center);
+		this.normal = this.applyTransformToVector(transform, this.normal).normalize();
+
+		const scale = this.getTransformAxisScale(transform);
+		this.radius *= (scale.x + scale.y) / 2;
 	}
 
 	override getBoundingBox(): BoundingBox {

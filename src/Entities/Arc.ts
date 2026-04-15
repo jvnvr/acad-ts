@@ -5,6 +5,7 @@ import { DxfSubclassMarker } from '../DxfSubclassMarker.js';
 import { ObjectType } from '../Types/ObjectType.js';
 import { XYZ } from '../Math/XYZ.js';
 import { XY } from '../Math/XY.js';
+import { Transform } from '../Math/Transform.js';
 
 export class Arc extends Circle {
 	endAngle: number = Math.PI;
@@ -107,7 +108,13 @@ export class Arc extends Circle {
 	}
 
 	override applyTransform(transform: any): void {
-		// TODO: Transform operations not available
+		if (!(transform instanceof Transform)) {
+			return;
+		}
+
+		super.applyTransform(transform);
+		this.startAngle += transform.eulerRotation.z;
+		this.endAngle += transform.eulerRotation.z;
 	}
 
 	override getBoundingBox(): BoundingBox | null {

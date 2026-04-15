@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { DxfFileToken } from '../src/DxfFileToken.js';
 import { Dimension } from '../src/Entities/Dimension.js';
+import { DimensionAligned } from '../src/Entities/DimensionAligned.js';
 import { AttachmentPointType } from '../src/Entities/AttachmentPointType.js';
 import { DimensionType } from '../src/Entities/DimensionType.js';
 import { Layer } from '../src/Tables/Layer.js';
@@ -85,5 +86,53 @@ describe('DimensionTests', () => {
 		expect(text.lineSpacing).toBe(1.25);
 		expect(text.attachmentPoint).toBe(AttachmentPointType.MiddleCenter);
 		expect(text.style.name).toBe('DimText');
+	});
+
+	it('AppliesStyleOverrideMapsToTheActiveDimensionStyle', () => {
+		const dimension = new TestDimension();
+		const style = new DimensionStyle();
+		style.textHeight = 2;
+		style.decimalPlaces = 2;
+		dimension.style = style;
+
+		const override = style.clone() as DimensionStyle;
+		override.textHeight = 3.5;
+		override.decimalPlaces = 4;
+
+		dimension.setDimensionOverride(override);
+
+		const map = dimension.getStyleOverrideMap();
+		const active = dimension.getActiveDimensionStyle();
+
+		expect(dimension.hasStyleOverride).toBe(true);
+		expect(map).not.toBeNull();
+		expect(active.textHeight).toBe(3.5);
+		expect(active.decimalPlaces).toBe(4);
+
+		dimension.setStyleOverrideMap(new Map());
+
+		expect(dimension.hasStyleOverride).toBe(false);
+	});
+
+	it('UpdatesAlignedOffsetBoundsAndTransforms', () => {
+		const dimension = new DimensionAligned(new XYZ(0, 0, 0), new XYZ(10, 0, 0));
+		dimension.normal = XYZ.AxisZ;
+
+		dimension.offset = 3;
+
+		expect(dimension.definitionPoint.x).toBeCloseTo(10);
+		expect(dimension.definitionPoint.y).toBeCloseTo(3);
+		expect(dimension.offset).toBeCloseTo(3);
+
+		dimension.applyTranslation(new XYZ(1, 2, 0));
+		const bounds = dimension.getBoundingBox();
+
+		expect(dimension.firstPoint).toEqual(new XYZ(1, 2, 0));
+		expect(dimension.secondPoint).toEqual(new XYZ(11, 2, 0));
+		expect(dimension.definitionPoint).toEqual(new XYZ(11, 5, 0));
+		expect(bounds.min.x).toBe(1);
+		expect(bounds.min.y).toBe(2);
+		expect(bounds.max.x).toBe(11);
+		expect(bounds.max.y).toBe(5);
 	});
 });

@@ -18,6 +18,31 @@ import { Spline } from './Spline.js';
 import { Vertex2D } from './Vertex2D.js';
 import { XYZ } from '../Math/XYZ.js';
 import { XY } from '../Math/XY.js';
+import { Transform } from '../Math/Transform.js';
+
+function transformXYPoint(transform: Transform, point: XY): XY {
+	const transformed = transform.applyTransform(new XYZ(point.x, point.y, 0));
+	return new XY(transformed.x, transformed.y);
+}
+
+function transformXYZVector(transform: Transform, vector: XYZ): XYZ {
+	const origin = transform.applyTransform(XYZ.Zero);
+	const transformed = transform.applyTransform(vector);
+	return new XYZ(
+		transformed.x - origin.x,
+		transformed.y - origin.y,
+		transformed.z - origin.z,
+	);
+}
+
+function getTransformAxisScale(transform: Transform): XYZ {
+	const matrix = transform.matrix;
+	return new XYZ(
+		Math.hypot(matrix.m00, matrix.m10, matrix.m20),
+		Math.hypot(matrix.m01, matrix.m11, matrix.m21),
+		Math.hypot(matrix.m02, matrix.m12, matrix.m22),
+	);
+}
 
 export enum EdgeType {
 	Polyline = 0,
@@ -47,7 +72,17 @@ export class HatchBoundaryPathArc extends HatchBoundaryPathEdge {
 	override get type(): EdgeType { return EdgeType.CircularArc; }
 
 	override applyTransform(transform: any): void {
-		// TODO: Transform
+		if (!(transform instanceof Transform)) {
+			return;
+		}
+
+		const originalCounterClockWise = this.counterClockWise;
+		const arc = this.toEntity() as Arc;
+		arc.applyTransform(transform);
+		this.center = new XY(arc.center.x, arc.center.y);
+		this.radius = arc.radius;
+		this.startAngle = originalCounterClockWise ? arc.startAngle : arc.endAngle;
+		this.endAngle = originalCounterClockWise ? arc.endAngle : arc.startAngle;
 	}
 
 	override getBoundingBox(): BoundingBox | null {
@@ -78,7 +113,18 @@ export class HatchBoundaryPathEllipse extends HatchBoundaryPathEdge {
 	override get type(): EdgeType { return EdgeType.EllipticArc; }
 
 	override applyTransform(transform: any): void {
-		// TODO: Transform
+		if (!(transform instanceof Transform)) {
+			return;
+		}
+
+		const originalCounterClockWise = this.counterClockWise;
+		const ellipse = this.toEntity() as Ellipse;
+		ellipse.applyTransform(transform);
+		this.center = new XY(ellipse.center.x, ellipse.center.y);
+		this.majorAxisEndPoint = new XY(ellipse.majorAxisEndPoint.x, ellipse.majorAxisEndPoint.y);
+		this.minorToMajorRatio = ellipse.radiusRatio;
+		this.startAngle = originalCounterClockWise ? ellipse.startParameter : ellipse.endParameter;
+		this.endAngle = originalCounterClockWise ? ellipse.endParameter : ellipse.startParameter;
 	}
 
 	override getBoundingBox(): BoundingBox | null {
@@ -108,7 +154,12 @@ export class HatchBoundaryPathLine extends HatchBoundaryPathEdge {
 	override get type(): EdgeType { return EdgeType.Line; }
 
 	override applyTransform(transform: any): void {
-		// TODO: Transform
+		if (!(transform instanceof Transform)) {
+			return;
+		}
+
+		this.start = transformXYPoint(transform, this.start);
+		this.end = transformXYPoint(transform, this.end);
 	}
 
 	override getBoundingBox(): BoundingBox {
@@ -131,7 +182,14 @@ export class HatchBoundaryPathPolyline extends HatchBoundaryPathEdge {
 	vertices: XYZ[] = [];
 
 	override applyTransform(transform: any): void {
-		// TODO: Transform
+		if (!(transform instanceof Transform)) {
+			return;
+		}
+
+		this.vertices = this.vertices.map((vertex) => {
+			const point = transform.applyTransform(new XYZ(vertex.x, vertex.y, 0));
+			return new XYZ(point.x, point.y, vertex.z);
+		});
 	}
 
 	override clone(): HatchBoundaryPathPolyline {
@@ -171,7 +229,19 @@ export class HatchBoundaryPathSpline extends HatchBoundaryPathEdge {
 	override get type(): EdgeType { return EdgeType.Spline; }
 
 	override applyTransform(transform: any): void {
-		// TODO: Transform
+		if (!(transform instanceof Transform)) {
+			return;
+		}
+
+		this.controlPoints = this.controlPoints.map((point) => {
+			const transformed = transform.applyTransform(new XYZ(point.x, point.y, 0));
+			return new XYZ(transformed.x, transformed.y, point.z);
+		});
+		this.fitPoints = this.fitPoints.map((point) => transformXYPoint(transform, point));
+		const startTangent = transformXYZVector(transform, new XYZ(this.startTangent.x, this.startTangent.y, 0));
+		const endTangent = transformXYZVector(transform, new XYZ(this.endTangent.x, this.endTangent.y, 0));
+		this.startTangent = new XY(startTangent.x, startTangent.y);
+		this.endTangent = new XY(endTangent.x, endTangent.y);
 	}
 
 	override clone(): HatchBoundaryPathSpline {
@@ -241,6 +311,15 @@ export class HatchBoundaryPath {
 	}
 
 	applyTransform(transform: any): void {
+		if (this.entities.length > 0) {
+			for (const entity of this.entities) {
+				entity.applyTransform(transform);
+			}
+			if (this.edges.length === 0) {
+				this.updateEdges();
+			}
+		}
+
 		for (const e of this.edges) {
 			e.applyTransform(transform);
 		}
@@ -397,6 +476,11 @@ export class Hatch extends Entity {
 	override applyTransform(transform: any): void {
 		for (const p of this.paths) {
 			p.applyTransform(transform);
+		}
+		if (transform instanceof Transform) {
+			this.seedPoints = this.seedPoints.map((point) => transformXYPoint(transform, point));
+			this.normal = this.applyTransformToVector(transform, this.normal).normalize();
+			this.elevation = this.applyTransformToPoint(transform, new XYZ(0, 0, this.elevation)).z;
 		}
 		// TODO: Pattern angle/scale recalculation
 	}

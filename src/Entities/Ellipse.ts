@@ -3,6 +3,7 @@ import { BoundingBox } from '../Math/BoundingBox.js';
 import { DxfFileToken } from '../DxfFileToken.js';
 import { DxfSubclassMarker } from '../DxfSubclassMarker.js';
 import { ObjectType } from '../Types/ObjectType.js';
+import { Transform } from '../Math/Transform.js';
 import { XYZ } from '../Math/XYZ.js';
 
 export class Ellipse extends Entity {
@@ -83,7 +84,40 @@ export class Ellipse extends Entity {
 	private _radiusRatio: number = 1.0;
 
 	override applyTransform(transform: any): void {
-		// TODO: Transform operations not available
+		if (!(transform instanceof Transform)) {
+			return;
+		}
+
+		const transformedCenter = this.applyTransformToPoint(transform, this.center);
+		const transformedMajor = this.applyTransformToVector(transform, this.majorAxisEndPoint);
+		const transformedMinor = this.applyTransformToVector(transform, this.minorAxisEndpoint);
+
+		let majorAxis = transformedMajor;
+		let minorAxis = transformedMinor;
+		let startParameter = this.startParameter;
+		let endParameter = this.endParameter;
+
+		if (transformedMinor.getLength() > transformedMajor.getLength()) {
+			majorAxis = transformedMinor;
+			minorAxis = transformedMajor;
+			startParameter = Math.PI / 2 - this.startParameter;
+			endParameter = Math.PI / 2 - this.endParameter;
+		}
+
+		const majorLength = majorAxis.getLength();
+		const minorLength = minorAxis.getLength();
+		if (majorLength > Number.EPSILON && minorLength > Number.EPSILON) {
+			this.majorAxisEndPoint = majorAxis;
+			this.radiusRatio = Math.max(Number.EPSILON, Math.min(1, minorLength / majorLength));
+			this.startParameter = startParameter;
+			this.endParameter = endParameter;
+			const normal = majorAxis.cross(minorAxis).normalize();
+			if (!Number.isNaN(normal.x) && !Number.isNaN(normal.y) && !Number.isNaN(normal.z) && normal.getLength() > 0) {
+				this.normal = normal;
+			}
+		}
+
+		this.center = transformedCenter;
 	}
 
 	override getBoundingBox(): BoundingBox | null {

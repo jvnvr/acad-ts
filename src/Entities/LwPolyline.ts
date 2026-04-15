@@ -81,7 +81,15 @@ export class LwPolyline extends Entity {
 	}
 
 	override applyTransform(transform: any): void {
-		// TODO: Transform with world matrix
+		for (const vertex of this.vertices) {
+			const point = this.applyTransformToPoint(transform, new XYZ(vertex.location.x, vertex.location.y, this.elevation));
+			vertex.location = new XY(point.x, point.y);
+		}
+		if (this.vertices.length > 0) {
+			const elevationPoint = this.applyTransformToPoint(transform, new XYZ(0, 0, this.elevation));
+			this.elevation = elevationPoint.z;
+		}
+		this.normal = this.applyTransformToVector(transform, this.normal).normalize();
 	}
 
 	public getPoints(precision: number = 256): XYZ[] {

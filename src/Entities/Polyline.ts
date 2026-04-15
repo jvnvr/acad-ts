@@ -78,7 +78,12 @@ export abstract class Polyline extends Entity {
 	}
 
 	override applyTransform(transform: any): void {
-		// TODO: Transform with world matrix
+		for (const vertex of this.vertices) {
+			if (vertex instanceof Entity) {
+				vertex.applyTransform(transform);
+			}
+		}
+		this.normal = this.applyTransformToVector(transform, this.normal).normalize();
 	}
 
 	public getPoints(precision: number = 256): XYZ[] {

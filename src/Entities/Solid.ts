@@ -31,7 +31,11 @@ export class Solid extends Entity {
 	thirdCorner: XYZ = new XYZ(0, 0, 0);
 
 	override applyTransform(transform: any): void {
-		// TODO: transform.ApplyTransform not available
+		this.firstCorner = this.applyTransformToPoint(transform, this.firstCorner);
+		this.secondCorner = this.applyTransformToPoint(transform, this.secondCorner);
+		this.thirdCorner = this.applyTransformToPoint(transform, this.thirdCorner);
+		this.fourthCorner = this.applyTransformToPoint(transform, this.fourthCorner);
+		this.normal = this.applyTransformToVector(transform, this.normal).normalize();
 	}
 
 	override getBoundingBox(): BoundingBox {

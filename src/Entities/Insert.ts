@@ -9,6 +9,7 @@ import { BlockRecord } from '../Tables/BlockRecord.js';
 import { AttributeEntity } from './AttributeEntity.js';
 import { AttributeDefinition } from './AttributeDefinition.js';
 import { CollectionChangedEventArgs } from '../CollectionChangedEventArgs.js';
+import { BoundingBox } from '../Math/BoundingBox.js';
 import { XYZ } from '../Math/XYZ.js';
 import { Transform } from '../Math/Transform.js';
 
@@ -113,7 +114,16 @@ export class Insert extends Entity {
 	}
 
 	override applyTransform(transform: any): void {
-		// TODO: Complex transform with matrix operations
+		const axisScale = this.getTransformAxisScale(transform);
+		this.insertPoint = this.applyTransformToPoint(transform, this.insertPoint);
+		this.normal = this.applyTransformToVector(transform, this.normal).normalize();
+		this.xScale *= axisScale.x === 0 ? 1 : axisScale.x;
+		this.yScale *= axisScale.y === 0 ? 1 : axisScale.y;
+		this.zScale *= axisScale.z === 0 ? 1 : axisScale.z;
+		if (transform instanceof Transform) {
+			this.rotation += transform.eulerRotation.z;
+		}
+
 		for (const att of this.attributes) {
 			att.applyTransform(transform);
 		}
@@ -130,12 +140,54 @@ export class Insert extends Entity {
 	}
 
 	*explode(): IterableIterator<Entity> {
-		// TODO: Complex explode logic with transform
+		if (this.block == null) {
+			return;
+		}
+
+		const transform = this.getTransform();
+		for (const entity of this.block.getSortedEntities()) {
+			if (entity instanceof AttributeDefinition) {
+				continue;
+			}
+
+			const clone = entity.clone() as Entity;
+			clone.applyTransform(transform);
+			yield clone;
+		}
+
+		for (const attribute of this.attributes) {
+			yield attribute.clone() as Entity;
+		}
 	}
 
-	override getBoundingBox(): any {
-		// TODO: Block.GetBoundingBox with transform
-		return null;
+	override getBoundingBox(): BoundingBox | null {
+		const blockBounds = this.block?.getBoundingBox();
+		const boxes: BoundingBox[] = [];
+		if (blockBounds != null) {
+			const transform = this.getTransform();
+			const corners = [
+				new XYZ(blockBounds.min.x, blockBounds.min.y, blockBounds.min.z),
+				new XYZ(blockBounds.min.x, blockBounds.min.y, blockBounds.max.z),
+				new XYZ(blockBounds.min.x, blockBounds.max.y, blockBounds.min.z),
+				new XYZ(blockBounds.min.x, blockBounds.max.y, blockBounds.max.z),
+				new XYZ(blockBounds.max.x, blockBounds.min.y, blockBounds.min.z),
+				new XYZ(blockBounds.max.x, blockBounds.min.y, blockBounds.max.z),
+				new XYZ(blockBounds.max.x, blockBounds.max.y, blockBounds.min.z),
+				new XYZ(blockBounds.max.x, blockBounds.max.y, blockBounds.max.z),
+			].map((corner) => transform.applyTransform(corner));
+			boxes.push(BoundingBox.FromPoints(corners));
+		}
+
+		for (const attribute of this.attributes) {
+			const bounds = attribute.getBoundingBox();
+			if (bounds != null) {
+				boxes.push(bounds);
+			}
+		}
+
+		return boxes.length > 0
+			? BoundingBox.FromPoints(boxes.flatMap((box) => [box.min, box.max]))
+			: null;
 	}
 
 	getTransform(): Transform {

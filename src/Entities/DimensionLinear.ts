@@ -28,7 +28,13 @@ export class DimensionLinear extends DimensionAligned {
 		return super.offset;
 	}
 	override set offset(value: number) {
-		// TODO: Transform.CreateRotation not available
+		const direction = new XYZ(Math.cos(this.rotation), Math.sin(this.rotation), 0);
+		const perpendicular = this.normal.cross(direction).normalize();
+		this.definitionPoint = new XYZ(
+			this.secondPoint.x + perpendicular.x * value,
+			this.secondPoint.y + perpendicular.y * value,
+			this.secondPoint.z + perpendicular.z * value,
+		);
 	}
 
 	rotation: number = 0;

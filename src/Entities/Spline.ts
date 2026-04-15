@@ -99,7 +99,11 @@ export class Spline extends Entity {
 	}
 
 	override applyTransform(transform: any): void {
-		// TODO: transform operations not available
+		this.controlPoints = this.controlPoints.map((point) => this.applyTransformToPoint(transform, point));
+		this.fitPoints = this.fitPoints.map((point) => this.applyTransformToPoint(transform, point));
+		this.startTangent = this.applyTransformToVector(transform, this.startTangent);
+		this.endTangent = this.applyTransformToVector(transform, this.endTangent);
+		this.normal = this.applyTransformToVector(transform, this.normal).normalize();
 	}
 
 	override clone(): CadObject {
@@ -184,8 +188,27 @@ export class Spline extends Entity {
 	}
 
 	updateFromFitPoints(iterationLimit: number = 255): boolean {
-		// TODO: Complex spline fitting algorithm - requires full XYZ vector math
-		return false;
+		void iterationLimit;
+		if (this.fitPoints.length < 2) {
+			return false;
+		}
+
+		// Fall back to a piecewise-linear spline that preserves fit point order.
+		this.degree = 1;
+		this.controlPoints = this.fitPoints.map((point) => new XYZ(point.x, point.y, point.z));
+		this.weights = new Array(this.controlPoints.length).fill(1);
+		this.knots = Spline.createKnotVector(this.controlPoints.length, this.degree, this.isPeriodic);
+
+		if (this.fitPoints.length >= 2) {
+			const first = this.fitPoints[0];
+			const second = this.fitPoints[1];
+			const penultimate = this.fitPoints[this.fitPoints.length - 2];
+			const last = this.fitPoints[this.fitPoints.length - 1];
+			this.startTangent = new XYZ(second.x - first.x, second.y - first.y, second.z - first.z);
+			this.endTangent = new XYZ(last.x - penultimate.x, last.y - penultimate.y, last.z - penultimate.z);
+		}
+
+		return true;
 	}
 
 	private static c(ctrlPoints: XYZ[], weights: number[], knots: number[], degree: number, u: number): XYZ {
@@ -270,6 +293,10 @@ export class Spline extends Entity {
 	}
 
 	private prepare(): { controlPts: XYZ[]; weights: number[]; knots: number[] } {
+		if (this.controlPoints.length === 0 && this.fitPoints.length > 0) {
+			this.updateFromFitPoints();
+		}
+
 		let c = [...this.controlPoints];
 		let w = [...this.weights];
 		let knots = [...this.knots];
