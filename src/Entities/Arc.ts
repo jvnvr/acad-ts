@@ -125,7 +125,6 @@ export class Arc extends Circle {
 	getEndVertices(): { start: XYZ; end: XYZ } {
 		const start = this.polarCoordinateRelativeToCenter(this.startAngle);
 		const end = this.polarCoordinateRelativeToCenter(this.endAngle);
-		// TODO: Matrix4.GetArbitraryAxis transform not applied
 		return { start, end };
 	}
 

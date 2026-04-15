@@ -149,9 +149,31 @@ export class Viewport extends Entity {
 	override applyTransform(transform: any): void {
 		if (this.boundary != null) {
 			this.boundary.applyTransform(transform);
+			const bounds = this.boundary.getBoundingBox();
+			if (bounds != null) {
+				this.center = bounds.center;
+				this.width = bounds.width;
+				this.height = bounds.height;
+			}
 		} else {
-			// TODO: Transform center and recalculate width/height
+			const bounds = this.getBoundingBox();
+			const corners = [
+				new XYZ(bounds.min.x, bounds.min.y, bounds.min.z),
+				new XYZ(bounds.min.x, bounds.max.y, bounds.min.z),
+				new XYZ(bounds.max.x, bounds.min.y, bounds.min.z),
+				new XYZ(bounds.max.x, bounds.max.y, bounds.min.z),
+			].map((corner) => this.applyTransformToPoint(transform, corner));
+			const transformedBounds = BoundingBox.FromPoints(corners);
+			this.center = transformedBounds.center;
+			this.width = transformedBounds.width;
+			this.height = transformedBounds.height;
 		}
+
+		this.viewTarget = this.applyTransformToPoint(transform, this.viewTarget);
+		this.viewDirection = this.applyTransformToVector(transform, this.viewDirection);
+		this.ucsOrigin = this.applyTransformToPoint(transform, this.ucsOrigin);
+		this.ucsXAxis = this.applyTransformToVector(transform, this.ucsXAxis);
+		this.ucsYAxis = this.applyTransformToVector(transform, this.ucsYAxis);
 	}
 
 	override clone(): CadObject {
@@ -181,8 +203,36 @@ export class Viewport extends Entity {
 		if (this.document == null) {
 			throw new Error('Viewport needs to be assigned to a document.');
 		}
-		// TODO: Entity selection by bounding box
-		return [];
+
+		const viewBounds = this.getModelBoundingBox();
+		const overlaps = (candidate: BoundingBox): boolean =>
+			candidate.max.x >= viewBounds.min.x &&
+			candidate.min.x <= viewBounds.max.x &&
+			candidate.max.y >= viewBounds.min.y &&
+			candidate.min.y <= viewBounds.max.y;
+		const contains = (candidate: BoundingBox): boolean =>
+			candidate.min.x >= viewBounds.min.x &&
+			candidate.max.x <= viewBounds.max.x &&
+			candidate.min.y >= viewBounds.min.y &&
+			candidate.max.y <= viewBounds.max.y;
+
+		const selected: Entity[] = [];
+		for (const entity of this.document.entities ?? []) {
+			if (entity === this) {
+				continue;
+			}
+
+			const bounds = entity.getBoundingBox();
+			if (bounds == null) {
+				continue;
+			}
+
+			if (includePartial ? overlaps(bounds) : contains(bounds)) {
+				selected.push(entity);
+			}
+		}
+
+		return selected;
 	}
 
 	/** @internal */

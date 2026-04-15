@@ -34,7 +34,8 @@ export class Ole2Frame extends Entity {
 	version: number = 2;
 
 	override applyTransform(transform: any): void {
-		// TODO: transform operations not available
+		this.upperLeftCorner = this.applyTransformToPoint(transform, this.upperLeftCorner);
+		this.lowerRightCorner = this.applyTransformToPoint(transform, this.lowerRightCorner);
 	}
 
 	override getBoundingBox(): BoundingBox {

@@ -1,4 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { Block } from '../src/Blocks/Block.js';
+import { BlockEnd } from '../src/Blocks/BlockEnd.js';
+import { BlockTypeFlags } from '../src/Blocks/BlockTypeFlags.js';
 import { AttributeDefinition } from '../src/Entities/AttributeDefinition.js';
 import { Line } from '../src/Entities/Line.js';
 import { Viewport } from '../src/Entities/Viewport.js';
@@ -68,5 +71,18 @@ describe('BlockRecordTests', () => {
 		expect(clone.sortEntitiesTable).not.toBeNull();
 		expect(clone.sortEntitiesTable?.blockOwner).toBe(clone);
 		expect(clone.getSortedEntities()).toEqual([clonedSecond, clonedFirst]);
+		expect(clone.blockEntity.owner).toBe(clone);
+		expect(clone.blockEnd.owner).toBe(clone);
+	});
+
+	it('SupportsXrefConstructionAndStandaloneBlockMarkerClones', () => {
+		const xref = new BlockRecord('xref-block', 'xref.dwg', true);
+		const blockClone = new Block(xref).clone() as Block;
+		const blockEndClone = new BlockEnd(xref).clone() as BlockEnd;
+
+		expect(xref.blockEntity.xRefPath).toBe('xref.dwg');
+		expect((xref.blockFlags & BlockTypeFlags.XRefOverlay) !== 0).toBe(true);
+		expect(blockClone.blockOwner?.blockEntity).toBe(blockClone);
+		expect((blockEndClone.owner as BlockRecord | null)?.blockEnd).toBe(blockEndClone);
 	});
 });

@@ -13,6 +13,7 @@ import { AttachmentPointType } from './AttachmentPointType.js';
 import { LineSpacingStyleType } from './LineSpacingStyleType.js';
 import { CollectionChangedEventArgs } from '../CollectionChangedEventArgs.js';
 import { DxfClassMap } from '../DxfClassMap.js';
+import { Line } from './Line.js';
 import { MText } from './MText.js';
 import { Point } from './Point.js';
 import { ExtendedData } from '../XData/ExtendedData.js';
@@ -314,6 +315,33 @@ export abstract class Dimension extends Entity {
 		return entity;
 	}
 
+	protected populateBlock(lineSegments: Array<readonly [XYZ, XYZ]>, definitionPoints: XYZ[], textPoint: XYZ = this.textMiddlePoint): void {
+		this.createBlock();
+
+		for (const [start, end] of lineSegments) {
+			this.addBlockLine(start, end);
+		}
+
+		const seenPoints = new Set<string>();
+		for (const point of definitionPoints) {
+			if (!this.isFinitePoint(point)) {
+				continue;
+			}
+
+			const key = `${point.x}:${point.y}:${point.z}`;
+			if (seenPoints.has(key)) {
+				continue;
+			}
+
+			seenPoints.add(key);
+			this._block!.entities.add(this.createDefinitionPoint(point));
+		}
+
+		if (this.isFinitePoint(textPoint)) {
+			this._block!.entities.add(this.createTextEntity(textPoint, this.getMeasurementText()));
+		}
+	}
+
 	protected static angleBetweenVectors(first: XYZ, second: XYZ): number {
 		const lengthProduct = first.getLength() * second.getLength();
 		if (lengthProduct === 0) {
@@ -327,6 +355,24 @@ export abstract class Dimension extends Entity {
 
 	protected static areParallel(first: XYZ, second: XYZ): boolean {
 		return Dimension.isZeroVector(first.cross(second));
+	}
+
+	protected isFinitePoint(point: XYZ): boolean {
+		return Number.isFinite(point.x) && Number.isFinite(point.y) && Number.isFinite(point.z);
+	}
+
+	private addBlockLine(start: XYZ, end: XYZ): void {
+		if (!this.isFinitePoint(start) || !this.isFinitePoint(end) || start.equals(end)) {
+			return;
+		}
+
+		const line = new Line(
+			new XYZ(start.x, start.y, start.z),
+			new XYZ(end.x, end.y, end.z),
+		);
+		line.layer = this.layer;
+		line.normal = this.normal;
+		this._block!.entities.add(line);
 	}
 
 	protected static intersectLinesXY(firstStart: XYZ, firstEnd: XYZ, secondStart: XYZ, secondEnd: XYZ): XYZ {
@@ -355,7 +401,7 @@ export abstract class Dimension extends Entity {
 		return new XYZ(first.x - second.x, first.y - second.y, first.z - second.z);
 	}
 
-	protected override _tableOnRemove(sender: any, e: CollectionChangedEventArgs): void {
+	protected override _tableOnRemove(sender: unknown, e: CollectionChangedEventArgs): void {
 		super._tableOnRemove(sender, e);
 
 		if (e.item === this._style) {

@@ -107,8 +107,6 @@ export class LineType extends TableEntry {
 		}
 		return clone;
 	}
-
-	// TODO: CreateLineTypeShape requires CSMath types (IVector, XYZ, Polyline3D)
 }
 
 export { LineTypeShapeFlags } from './LinetypeShapeFlags.js';

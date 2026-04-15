@@ -4,9 +4,10 @@ import { CadDocument } from '../CadDocument.js';
 import { DxfSubclassMarker } from '../DxfSubclassMarker.js';
 import { UnderlayDisplayFlags } from './UnderlayDisplayFlags.js';
 import { CollectionChangedEventArgs } from '../CollectionChangedEventArgs.js';
-import type { BoundingBox } from '../Math/BoundingBox.js';
+import { BoundingBox } from '../Math/BoundingBox.js';
 import { XYZ } from '../Math/XYZ.js';
 import { XY } from '../Math/XY.js';
+import { Transform } from '../Math/Transform.js';
 import type { UnderlayDefinition } from '../Objects/UnderlayDefinition.js';
 
 export abstract class UnderlayEntity extends Entity {
@@ -90,7 +91,18 @@ export abstract class UnderlayEntity extends Entity {
 	}
 
 	override applyTransform(transform: any): void {
-		// TODO: Complex transform with world matrix
+		this.insertPoint = this.applyTransformToPoint(transform, this.insertPoint);
+		this.normal = this.transformNormal(transform, this.normal);
+
+		if (!(transform instanceof Transform)) {
+			return;
+		}
+
+		const scale = this.getTransformAxisScale(transform);
+		this.rotation += transform.eulerRotation.z;
+		this.xScale *= scale.x === 0 ? 1 : scale.x;
+		this.yScale *= scale.y === 0 ? 1 : scale.y;
+		this.zScale *= scale.z === 0 ? 1 : scale.z;
 	}
 
 	override clone(): CadObject {
@@ -101,7 +113,21 @@ export abstract class UnderlayEntity extends Entity {
 	}
 
 	override getBoundingBox(): BoundingBox | null {
-		return null;
+		if (this.clipBoundaryVertices.length === 0) {
+			return null;
+		}
+
+		const points = this.clipBoundaryVertices.map((vertex) => {
+			const scaled = new XY(vertex.x * this.xScale, vertex.y * this.yScale);
+			const rotated = XY.Rotate(scaled, this.rotation);
+			return new XYZ(
+				this.insertPoint.x + rotated.x,
+				this.insertPoint.y + rotated.y,
+				this.insertPoint.z,
+			);
+		});
+
+		return BoundingBox.FromPoints(points);
 	}
 
 	/** @internal */

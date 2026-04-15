@@ -1,9 +1,13 @@
 import { AnnotScaleObjectContextData } from './AnnotScaleObjectContextData.js';
 import { CadObject } from '../CadObject.js';
+import type { CadDocument } from '../CadDocument.js';
 import { Color } from '../Color.js';
 import { DxfFileToken } from '../DxfFileToken.js';
 import { DxfSubclassMarker } from '../DxfSubclassMarker.js';
 import { ObjectType } from '../Types/ObjectType.js';
+import { BlockRecord } from '../Tables/BlockRecord.js';
+import { LineType } from '../Tables/LineType.js';
+import { TextStyle } from '../Tables/TextStyle.js';
 import { XYZ } from '../Math/XYZ.js';
 import { Matrix4 } from '../Math/Matrix4.js';
 
@@ -25,15 +29,15 @@ export class StartEndPointPair {
 }
 
 export class LeaderLine {
-	arrowhead: any = null;
+	arrowhead: BlockRecord | null = null;
 	arrowheadSize: number = 0;
 	breakInfoCount: number = 0;
 	index: number = 0;
 	lineColor: Color = Color.ByLayer;
 
-	private _lineType: any = null;
-	get lineType(): any { return this._lineType; }
-	set lineType(value: any) { this._lineType = value; }
+	private _lineType: LineType | null = null;
+	get lineType(): LineType | null { return this._lineType; }
+	set lineType(value: LineType | null) { this._lineType = value; }
 
 	lineWeight: number = 0;
 	overrideFlags: number = 0;
@@ -42,11 +46,11 @@ export class LeaderLine {
 	segmentIndex: number = 0;
 	startEndPoints: StartEndPointPair[] = [];
 
-	document: any = null;
+	document: CadDocument | null = null;
 
-	assignDocument(doc: any): void {
+	assignDocument(doc: CadDocument): void {
 		this.document = doc;
-		// TODO: update line type from doc.lineTypes
+		this._lineType = CadObject.updateCollectionStatic(this._lineType, doc.lineTypes);
 	}
 
 	clone(): LeaderLine {
@@ -59,12 +63,15 @@ export class LeaderLine {
 		clone.overrideFlags = this.overrideFlags;
 		clone.pathType = this.pathType;
 		clone.segmentIndex = this.segmentIndex;
+		clone.arrowhead = this.arrowhead?.clone() as BlockRecord | null ?? null;
+		clone._lineType = this._lineType?.clone() as LineType | null ?? null;
 		clone.points = this.points.map(p => new XYZ(p.x, p.y, p.z));
 		clone.startEndPoints = this.startEndPoints.map(s => s.clone());
 		return clone;
 	}
 
 	unassignDocument(): void {
+		this._lineType = this._lineType?.clone() as LineType | null ?? null;
 		this.document = null;
 	}
 }
@@ -106,10 +113,10 @@ export class MultiLeaderObjectContextData extends AnnotScaleObjectContextData {
 	basePoint: XYZ = new XYZ(0, 0, 0);
 	baseVertical: XYZ = new XYZ(0, 0, 0);
 
-	private _blockContent: any = null;
-	get blockContent(): any { return this._blockContent; }
-	set blockContent(value: any) {
-		this._blockContent = value;
+	private _blockContent: BlockRecord | null = null;
+	get blockContent(): BlockRecord | null { return this._blockContent; }
+	set blockContent(value: BlockRecord | null) {
+		this._blockContent = CadObject.updateCollectionStatic(value, this.document?.blockRecords ?? null);
 	}
 
 	blockContentColor: Color = Color.ByLayer;
@@ -156,11 +163,11 @@ export class MultiLeaderObjectContextData extends AnnotScaleObjectContextData {
 	textRightAttachment: number = 0;
 	textRotation: number = 0;
 
-	private _textStyle: any = null;
-	get textStyle(): any { return this._textStyle; }
-	set textStyle(value: any) {
+	private _textStyle: TextStyle | null = null;
+	get textStyle(): TextStyle | null { return this._textStyle; }
+	set textStyle(value: TextStyle | null) {
 		if (value == null) throw new Error('value cannot be null');
-		this._textStyle = value;
+		this._textStyle = CadObject.updateCollectionStatic(value, this.document?.textStyles ?? null);
 	}
 
 	textTopAttachment: number = 0;
@@ -170,7 +177,30 @@ export class MultiLeaderObjectContextData extends AnnotScaleObjectContextData {
 	override clone(): CadObject {
 		const clone = super.clone() as MultiLeaderObjectContextData;
 		clone.leaderRoots = this.leaderRoots.map(r => r.clone());
-		// TODO: clone textStyle, blockContent
+		clone._textStyle = this._textStyle?.clone() as TextStyle | null ?? null;
+		clone._blockContent = this._blockContent?.clone() as BlockRecord | null ?? null;
 		return clone;
+	}
+
+	override assignDocument(doc: CadDocument): void {
+		super.assignDocument(doc);
+		this._blockContent = CadObject.updateCollectionStatic(this._blockContent, doc.blockRecords);
+		this._textStyle = CadObject.updateCollectionStatic(this._textStyle, doc.textStyles);
+		for (const root of this.leaderRoots) {
+			for (const line of root.lines) {
+				line.assignDocument(doc);
+			}
+		}
+	}
+
+	override unassignDocument(): void {
+		super.unassignDocument();
+		this._blockContent = this._blockContent?.clone() as BlockRecord | null ?? null;
+		this._textStyle = this._textStyle?.clone() as TextStyle | null ?? null;
+		for (const root of this.leaderRoots) {
+			for (const line of root.lines) {
+				line.unassignDocument();
+			}
+		}
 	}
 }

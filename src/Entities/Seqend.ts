@@ -2,6 +2,7 @@ import { Entity } from './Entity.js';
 import { DxfFileToken } from '../DxfFileToken.js';
 import { ObjectType } from '../Types/ObjectType.js';
 import { CadObject } from '../CadObject.js';
+import type { BoundingBox } from '../Math/BoundingBox.js';
 
 export class Seqend extends Entity {
 	override get objectType(): ObjectType {
@@ -19,7 +20,7 @@ export class Seqend extends Entity {
 		}
 	}
 
-	override getBoundingBox(): any {
+	override getBoundingBox(): BoundingBox | null {
 		return null;
 	}
 

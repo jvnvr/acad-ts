@@ -27,8 +27,7 @@ export class Leader extends Entity {
 		if (this.vertices.length <= 1) {
 			return false;
 		}
-		// TODO: AngleBetweenVectors not available
-		return false;
+		return this.creationType !== LeaderCreationType.CreatedWithoutAnnotation && this.horizontalDirection.getLength() > 0;
 	}
 
 	hookLineDirection: HookLineDirection = HookLineDirection.Opposite;
@@ -74,7 +73,11 @@ export class Leader extends Entity {
 	private _style: DimensionStyle = DimensionStyle.Default;
 
 	override applyTransform(transform: any): void {
-		// TODO: transform operations not available
+		this.annotationOffset = this.applyTransformToVector(transform, this.annotationOffset);
+		this.blockOffset = this.applyTransformToVector(transform, this.blockOffset);
+		this.horizontalDirection = this.applyTransformToVector(transform, this.horizontalDirection);
+		this.normal = this.transformNormal(transform, this.normal);
+		this.vertices = this.vertices.map((vertex) => this.applyTransformToPoint(transform, vertex));
 	}
 
 	override clone(): CadObject {
@@ -99,7 +102,7 @@ export class Leader extends Entity {
 		this._style = this._style.clone() as DimensionStyle;
 	}
 
-	protected override _tableOnRemove(sender: any, e: CollectionChangedEventArgs): void {
+	protected override _tableOnRemove(sender: unknown, e: CollectionChangedEventArgs): void {
 		super._tableOnRemove(sender, e);
 		if (e.item === this._style) {
 			this._style = this.document!.dimensionStyles.get(DimensionStyle.DefaultName)!;

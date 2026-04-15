@@ -1,6 +1,9 @@
 import { NonGraphicalObject } from './NonGraphicalObject.js';
+import { DxfClass } from '../Classes/DxfClass.js';
 import { ObjectType } from '../Types/ObjectType.js';
 import { DxfSubclassMarker } from '../DxfSubclassMarker.js';
+
+type DxfClassLookupResult = { result: DxfClass | null; found: boolean };
 
 export class UnknownNonGraphicalObject extends NonGraphicalObject {
 	override get objectType(): ObjectType {
@@ -21,10 +24,10 @@ export class UnknownNonGraphicalObject extends NonGraphicalObject {
 		return this.dxfClass.cppClassName;
 	}
 
-	readonly dxfClass: any;
+	readonly dxfClass: DxfClass | null;
 
-	constructor(dxfClass: any) {
+	constructor(dxfClass: DxfClass | DxfClassLookupResult | null) {
 		super();
-		this.dxfClass = dxfClass;
+		this.dxfClass = dxfClass instanceof DxfClass ? dxfClass : dxfClass?.result ?? null;
 	}
 }

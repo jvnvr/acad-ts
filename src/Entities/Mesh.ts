@@ -2,6 +2,7 @@ import { Entity } from './Entity.js';
 import { CadObject } from '../CadObject.js';
 import { DxfFileToken } from '../DxfFileToken.js';
 import { DxfSubclassMarker } from '../DxfSubclassMarker.js';
+import { BoundingBox } from '../Math/BoundingBox.js';
 import { ObjectType } from '../Types/ObjectType.js';
 import { XYZ } from '../Math/XYZ.js';
 
@@ -46,9 +47,7 @@ export class Mesh extends Entity {
 	vertices: XYZ[] = [];
 
 	override applyTransform(transform: any): void {
-		for (let i = 0; i < this.vertices.length; i++) {
-			// TODO: this.vertices[i] = transform * this.vertices[i]
-		}
+		this.vertices = this.vertices.map((vertex) => this.applyTransformToPoint(transform, vertex));
 	}
 
 	override clone(): CadObject {
@@ -63,7 +62,7 @@ export class Mesh extends Entity {
 		return clone;
 	}
 
-	override getBoundingBox(): any {
-		return null;
+	override getBoundingBox(): BoundingBox | null {
+		return this.vertices.length > 0 ? BoundingBox.FromPoints(this.vertices) : null;
 	}
 }

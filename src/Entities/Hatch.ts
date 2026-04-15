@@ -54,7 +54,7 @@ export enum EdgeType {
 
 export abstract class HatchBoundaryPathEdge {
 	abstract get type(): EdgeType;
-	abstract applyTransform(transform: any): void;
+	abstract applyTransform(transform: unknown): void;
 	clone(): HatchBoundaryPathEdge {
 		return Object.assign(Object.create(Object.getPrototypeOf(this)), this);
 	}
@@ -71,7 +71,7 @@ export class HatchBoundaryPathArc extends HatchBoundaryPathEdge {
 
 	override get type(): EdgeType { return EdgeType.CircularArc; }
 
-	override applyTransform(transform: any): void {
+	override applyTransform(transform: unknown): void {
 		if (!(transform instanceof Transform)) {
 			return;
 		}
@@ -112,7 +112,7 @@ export class HatchBoundaryPathEllipse extends HatchBoundaryPathEdge {
 
 	override get type(): EdgeType { return EdgeType.EllipticArc; }
 
-	override applyTransform(transform: any): void {
+	override applyTransform(transform: unknown): void {
 		if (!(transform instanceof Transform)) {
 			return;
 		}
@@ -153,7 +153,7 @@ export class HatchBoundaryPathLine extends HatchBoundaryPathEdge {
 
 	override get type(): EdgeType { return EdgeType.Line; }
 
-	override applyTransform(transform: any): void {
+	override applyTransform(transform: unknown): void {
 		if (!(transform instanceof Transform)) {
 			return;
 		}
@@ -181,7 +181,7 @@ export class HatchBoundaryPathPolyline extends HatchBoundaryPathEdge {
 	override get type(): EdgeType { return EdgeType.Polyline; }
 	vertices: XYZ[] = [];
 
-	override applyTransform(transform: any): void {
+	override applyTransform(transform: unknown): void {
 		if (!(transform instanceof Transform)) {
 			return;
 		}
@@ -228,7 +228,7 @@ export class HatchBoundaryPathSpline extends HatchBoundaryPathEdge {
 
 	override get type(): EdgeType { return EdgeType.Spline; }
 
-	override applyTransform(transform: any): void {
+	override applyTransform(transform: unknown): void {
 		if (!(transform instanceof Transform)) {
 			return;
 		}
@@ -310,7 +310,7 @@ export class HatchBoundaryPath {
 		}
 	}
 
-	applyTransform(transform: any): void {
+	applyTransform(transform: unknown): void {
 		if (this.entities.length > 0) {
 			for (const entity of this.entities) {
 				entity.applyTransform(transform);
@@ -473,7 +473,7 @@ export class Hatch extends Entity {
 	private _patternAngle: number = 0;
 	private _patternScale: number = 0;
 
-	override applyTransform(transform: any): void {
+	override applyTransform(transform: unknown): void {
 		for (const p of this.paths) {
 			p.applyTransform(transform);
 		}
@@ -481,8 +481,14 @@ export class Hatch extends Entity {
 			this.seedPoints = this.seedPoints.map((point) => transformXYPoint(transform, point));
 			this.normal = this.applyTransformToVector(transform, this.normal).normalize();
 			this.elevation = this.applyTransformToPoint(transform, new XYZ(0, 0, this.elevation)).z;
+			const transformedOrigin = transformXYPoint(transform, XY.Zero);
+			const transformedAxis = transformXYZVector(transform, XYZ.AxisX);
+			const patternRotation = Math.atan2(transformedAxis.y, transformedAxis.x);
+			const patternScale = Math.hypot(transformedAxis.x, transformedAxis.y) || 1;
+			this.pattern?.update(transformedOrigin, patternRotation, patternScale);
+			this._patternAngle += patternRotation;
+			this._patternScale = this._patternScale === 0 ? patternScale : this._patternScale * patternScale;
 		}
-		// TODO: Pattern angle/scale recalculation
 	}
 
 	override clone(): CadObject {

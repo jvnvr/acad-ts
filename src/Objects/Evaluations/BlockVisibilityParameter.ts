@@ -1,18 +1,19 @@
 import { Block1PtParameter } from './Block1PtParameter.js';
 import { CadObject } from '../../CadObject.js';
+import { Entity } from '../../Entities/Entity.js';
 import { DxfFileToken } from '../../DxfFileToken.js';
 import { DxfSubclassMarker } from '../../DxfSubclassMarker.js';
 import { EvaluationExpression } from './EvaluationExpression.js';
 
 export class BlockVisibilityState {
 	name: string = '';
-	entities: any[] = [];
+	entities: Entity[] = [];
 	expressions: EvaluationExpression[] = [];
 
 	clone(): BlockVisibilityState {
 		const clone = new BlockVisibilityState();
 		clone.name = this.name;
-		clone.entities = this.entities.map(e => e.clone ? e.clone() : { ...e });
+		clone.entities = this.entities.map(e => e.clone() as Entity);
 		clone.expressions = this.expressions.map(e => e.clone() as EvaluationExpression);
 		return clone;
 	}
@@ -20,7 +21,7 @@ export class BlockVisibilityState {
 
 export class BlockVisibilityParameter extends Block1PtParameter {
 	description: string = '';
-	entities: any[] = [];
+	entities: Entity[] = [];
 	name: string = '';
 
 	override get objectName(): string { return DxfFileToken.ObjectBlockVisibilityParameter; }
@@ -41,7 +42,7 @@ export class BlockVisibilityParameter extends Block1PtParameter {
 
 	override clone(): CadObject {
 		const clone = super.clone() as BlockVisibilityParameter;
-		clone.entities = this.entities.map(e => e.clone ? e.clone() : { ...e });
+		clone.entities = this.entities.map(e => e.clone() as Entity);
 		clone._states = new Map();
 		for (const [key, state] of this._states) {
 			const clonedState = state.clone();

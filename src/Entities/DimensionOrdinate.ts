@@ -1,6 +1,7 @@
 import { Dimension } from './Dimension.js';
 import { DxfFileToken } from '../DxfFileToken.js';
 import { DxfSubclassMarker } from '../DxfSubclassMarker.js';
+import { BoundingBox } from '../Math/BoundingBox.js';
 import { ObjectType } from '../Types/ObjectType.js';
 import { DimensionType } from './DimensionType.js';
 import { XYZ } from '../Math/XYZ.js';
@@ -55,26 +56,21 @@ export class DimensionOrdinate extends Dimension {
 
 	override applyTransform(transform: any): void {
 		super.applyTransform(transform);
-		// TODO: Transform FeatureLocation and LeaderEndpoint
+		this.featureLocation = this.applyTransformToPoint(transform, this.featureLocation);
+		this.leaderEndpoint = this.applyTransformToPoint(transform, this.leaderEndpoint);
 	}
 
-	override getBoundingBox(): any {
-		return {
-			min: {
-				x: Math.min(this.featureLocation.x, this.leaderEndpoint.x),
-				y: Math.min(this.featureLocation.y, this.leaderEndpoint.y),
-				z: Math.min(this.featureLocation.z, this.leaderEndpoint.z),
-			},
-			max: {
-				x: Math.max(this.featureLocation.x, this.leaderEndpoint.x),
-				y: Math.max(this.featureLocation.y, this.leaderEndpoint.y),
-				z: Math.max(this.featureLocation.z, this.leaderEndpoint.z),
-			},
-		};
+	override getBoundingBox(): BoundingBox {
+		return BoundingBox.FromPoints([this.featureLocation, this.leaderEndpoint, this.definitionPoint]);
 	}
 
 	override updateBlock(): void {
-		super.updateBlock();
-		// TODO: Complex block generation
+		this.populateBlock(
+			[
+				[this.featureLocation, this.definitionPoint],
+				[this.definitionPoint, this.leaderEndpoint],
+			],
+			[this.featureLocation, this.definitionPoint, this.leaderEndpoint],
+		);
 	}
 }

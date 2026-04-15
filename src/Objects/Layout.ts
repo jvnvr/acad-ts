@@ -22,6 +22,12 @@ export class Layout extends PlotSettings {
 		if (value == null) {
 			throw new Error('value cannot be null');
 		}
+		if (this._blockRecord === value) {
+			return;
+		}
+		if (this._blockRecord?.layout === this) {
+			this._blockRecord.layout = null;
+		}
 		this._blockRecord = value;
 		this._blockRecord.layout = this;
 	}
@@ -76,8 +82,9 @@ export class Layout extends PlotSettings {
 		super();
 		if (name != null) {
 			this.name = name;
-			// TODO: Create BlockRecord with blockName or name
 		}
+
+		void blockName;
 	}
 
 	addViewport(viewport: Viewport): void {
@@ -85,9 +92,11 @@ export class Layout extends PlotSettings {
 	}
 
 	override clone(): CadObject {
-		const clone = super.clone() as Layout;
-		// TODO: clone._blockRecord = this._blockRecord?.clone();
-		return clone;
+		return this.cloneCore(true);
+	}
+
+	cloneWithoutAssociatedBlock(): Layout {
+		return this.cloneCore(false);
 	}
 
 	override toString(): string {
@@ -109,6 +118,23 @@ export class Layout extends PlotSettings {
 		viewport.id = Viewport.PaperViewId;
 		this.addViewport(viewport);
 		this.lastActiveViewport = viewport;
+	}
+
+	private cloneCore(includeAssociatedBlock: boolean): Layout {
+		const clone = super.clone() as Layout;
+		clone._blockRecord = null;
+		clone._lastViewport = null;
+
+		if (!includeAssociatedBlock || this._blockRecord == null) {
+			return clone;
+		}
+
+		clone.associatedBlock = this._blockRecord.cloneWithoutLayout();
+		if (this._lastViewport != null) {
+			clone._lastViewport = clone.viewports?.find((viewport) => viewport.id === this._lastViewport?.id) ?? null;
+		}
+
+		return clone;
 	}
 }
 

@@ -5,7 +5,7 @@ import { StandardFlags } from './StandardFlags.js';
 import { OnNameChangedArgs } from '../OnNameChangedArgs.js';
 
 export abstract class TableEntry extends CadObject implements INamedCadObject {
-	public onNameChanged: ((sender: any, args: OnNameChangedArgs) => void) | null = null;
+	public onNameChanged: ((sender: unknown, args: OnNameChangedArgs) => void) | null = null;
 
 	public flags: StandardFlags = StandardFlags.None;
 

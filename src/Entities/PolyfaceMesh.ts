@@ -3,6 +3,7 @@ import { CadObject } from '../CadObject.js';
 import { CadObjectCollection } from '../CadObjectCollection.js';
 import { DxfFileToken } from '../DxfFileToken.js';
 import { DxfSubclassMarker } from '../DxfSubclassMarker.js';
+import type { BoundingBox } from '../Math/BoundingBox.js';
 import { ObjectType } from '../Types/ObjectType.js';
 import { PolylineFlags } from './PolylineFlags.js';
 import { VertexFaceMesh } from './VertexFaceMesh.js';
@@ -35,6 +36,7 @@ export class PolyfaceMesh extends Polyline {
 		clone.faces = this.faces.map(f => f.clone() as VertexFaceRecord);
 		return clone;
 	}
-
-  getBoundingBox(): any { return null; }
+	override getBoundingBox(): BoundingBox | null {
+		return super.getBoundingBox();
+	}
 }

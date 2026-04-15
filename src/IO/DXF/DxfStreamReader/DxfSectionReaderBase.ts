@@ -31,6 +31,7 @@ import { ColumnType } from '../../../Entities/ColumnType.js';
 import { MultiLeader } from '../../../Entities/MultiLeader.js';
 import { MultiLeaderObjectContextData , LeaderRoot, LeaderLine} from '../../../Objects/MultiLeaderObjectContextData.js';
 import { Point } from '../../../Entities/Point.js';
+import { IPolyline } from '../../../Entities/IPolyline.js';
 import { Polyline2D } from '../../../Entities/Polyline2D.js';
 import { Polyline3D } from '../../../Entities/Polyline3D.js';
 import { PolyfaceMesh } from '../../../Entities/PolyfaceMesh.js';
@@ -972,9 +973,11 @@ export abstract class DxfSectionReaderBase {
         return true;
       }
       case 421: {
-        // const colorByRgb = hatch.GradientColor.Colors[hatch.GradientColor.Colors.length - 1];
-        // TODO: Hatch assign color by true color
-        // TODO: Is always duplicated by 63, is it needed??
+        const colorByRgb = hatch.gradientColor.colors[hatch.gradientColor.colors.length - 1];
+        const trueColor = this._reader.ValueAsInt;
+        if (colorByRgb && trueColor >= 0) {
+          colorByRgb.color = Color.fromTrueColor(trueColor);
+        }
         return true;
       }
       case 470:
@@ -1044,7 +1047,7 @@ export abstract class DxfSectionReaderBase {
 
   private readLegacyPolyline(): CadEntityTemplate {
     const polyline = new Polyline2D();
-    const template = new CadPolyLineTemplate(polyline as any);
+    const template = new CadPolyLineTemplate(polyline as unknown as IPolyline);
     this.readEntityCodes(template, this.readPolylineCodes.bind(this), Polyline2D);
 
     while (this._reader.Code === 0 && this._reader.ValueAsString === DxfFileToken.EntityVertex) {
@@ -2196,7 +2199,7 @@ export abstract class DxfSectionReaderBase {
           return false;
         }
 
-        let value: any = this._reader.Value;
+        let value: unknown = this._reader.Value;
 
         if ((dxfProperty.referenceType & DxfReferenceType.IsAngle) !== 0) {
           value = MathHelper.DegToRad(value as number);
@@ -2206,11 +2209,11 @@ export abstract class DxfSectionReaderBase {
 
         return true;
       }
-    } catch (ex: any) {
+    } catch (ex: unknown) {
       if (!this._builder.Configuration.Failsafe) {
         throw ex;
       } else {
-        this._builder.Notify('An error occurred while assigning a property using mapper', NotificationType.Error, ex);
+        this._builder.Notify('An error occurred while assigning a property using mapper', NotificationType.Error, ex instanceof Error ? ex : null);
       }
     }
 

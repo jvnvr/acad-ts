@@ -1,5 +1,6 @@
 import { NonGraphicalObject } from './NonGraphicalObject.js';
 import { CadObject } from '../CadObject.js';
+import type { CadDocument } from '../CadDocument.js';
 import { Color } from '../Color.js';
 import { DxfFileToken } from '../DxfFileToken.js';
 import { DxfSubclassMarker } from '../DxfSubclassMarker.js';
@@ -7,6 +8,9 @@ import { ObjectType } from '../Types/ObjectType.js';
 import { LeaderContentType } from './LeaderContentType.js';
 import { LeaderDrawOrderType } from './LeaderDrawOrderType.js';
 import { MultiLeaderDrawOrderType } from './MultiLeaderDrawOrderType.js';
+import { BlockRecord } from '../Tables/BlockRecord.js';
+import { LineType } from '../Tables/LineType.js';
+import { TextStyle } from '../Tables/TextStyle.js';
 import { XYZ } from '../Math/XYZ.js';
 
 export class MultiLeaderStyle extends NonGraphicalObject {
@@ -14,15 +18,19 @@ export class MultiLeaderStyle extends NonGraphicalObject {
 
 	alignSpace: number = 0.0;
 
-	private _arrowhead: any = null;
-	get arrowhead(): any { return this._arrowhead; }
-	set arrowhead(value: any) { this._arrowhead = value; }
+	private _arrowhead: BlockRecord | null = null;
+	get arrowhead(): BlockRecord | null { return this._arrowhead; }
+	set arrowhead(value: BlockRecord | null) {
+		this._arrowhead = CadObject.updateCollectionStatic(value, this.document?.blockRecords ?? null);
+	}
 
 	arrowheadSize: number = 0.18;
 
-	private _blockContent: any = null;
-	get blockContent(): any { return this._blockContent; }
-	set blockContent(value: any) { this._blockContent = value; }
+	private _blockContent: BlockRecord | null = null;
+	get blockContent(): BlockRecord | null { return this._blockContent; }
+	set blockContent(value: BlockRecord | null) {
+		this._blockContent = CadObject.updateCollectionStatic(value, this.document?.blockRecords ?? null);
+	}
 
 	blockContentColor: Color = Color.ByBlock;
 	blockContentConnection: number = 0;
@@ -55,11 +63,11 @@ export class MultiLeaderStyle extends NonGraphicalObject {
 	landingGap: number = 0.09;
 	leaderDrawOrder: LeaderDrawOrderType = LeaderDrawOrderType.LeaderHeadFirst;
 
-	private _leaderLineType: any = null;
-	get leaderLineType(): any { return this._leaderLineType; }
-	set leaderLineType(value: any) {
+	private _leaderLineType: LineType | null = null;
+	get leaderLineType(): LineType | null { return this._leaderLineType; }
+	set leaderLineType(value: LineType | null) {
 		if (value == null) throw new Error('value cannot be null');
-		this._leaderLineType = value;
+		this._leaderLineType = CadObject.updateCollectionStatic(value, this.document?.lineTypes ?? null);
 	}
 
 	leaderLineWeight: number = 0;
@@ -88,11 +96,11 @@ export class MultiLeaderStyle extends NonGraphicalObject {
 	textLeftAttachment: number = 0;
 	textRightAttachment: number = 0;
 
-	private _textStyle: any = null;
-	get textStyle(): any { return this._textStyle; }
-	set textStyle(value: any) {
+	private _textStyle: TextStyle | null = null;
+	get textStyle(): TextStyle | null { return this._textStyle; }
+	set textStyle(value: TextStyle | null) {
 		if (value == null) throw new Error('value cannot be null');
-		this._textStyle = value;
+		this._textStyle = CadObject.updateCollectionStatic(value, this.document?.textStyles ?? null);
 	}
 
 	textTopAttachment: number = 0;
@@ -106,8 +114,27 @@ export class MultiLeaderStyle extends NonGraphicalObject {
 
 	override clone(): CadObject {
 		const clone = super.clone() as MultiLeaderStyle;
-		// TODO: clone textStyle, leaderLineType, arrowhead, blockContent
+		clone._textStyle = this._textStyle?.clone() as TextStyle | null ?? null;
+		clone._leaderLineType = this._leaderLineType?.clone() as LineType | null ?? null;
+		clone._arrowhead = this._arrowhead?.clone() as BlockRecord | null ?? null;
+		clone._blockContent = this._blockContent?.clone() as BlockRecord | null ?? null;
 		return clone;
+	}
+
+	override assignDocument(doc: CadDocument): void {
+		super.assignDocument(doc);
+		this._arrowhead = CadObject.updateCollectionStatic(this._arrowhead, doc.blockRecords);
+		this._blockContent = CadObject.updateCollectionStatic(this._blockContent, doc.blockRecords);
+		this._leaderLineType = CadObject.updateCollectionStatic(this._leaderLineType, doc.lineTypes);
+		this._textStyle = CadObject.updateCollectionStatic(this._textStyle, doc.textStyles);
+	}
+
+	override unassignDocument(): void {
+		super.unassignDocument();
+		this._arrowhead = this._arrowhead?.clone() as BlockRecord | null ?? null;
+		this._blockContent = this._blockContent?.clone() as BlockRecord | null ?? null;
+		this._leaderLineType = this._leaderLineType?.clone() as LineType | null ?? null;
+		this._textStyle = this._textStyle?.clone() as TextStyle | null ?? null;
 	}
 }
 

@@ -4,7 +4,7 @@ import { ObjectType } from '../Types/ObjectType.js';
 import { CadObject } from '../CadObject.js';
 import { Entity } from '../Entities/Entity.js';
 import type { BoundingBox } from '../Math/BoundingBox.js';
-import type { BlockRecord } from '../Tables/BlockRecord.js';
+import { BlockRecord } from '../Tables/BlockRecord.js';
 
 export class BlockEnd extends Entity {
 	public override get objectName(): string {
@@ -28,11 +28,15 @@ export class BlockEnd extends Entity {
 
 	public override clone(): CadObject {
 		const clone = super.clone() as BlockEnd;
-		// TODO: clone.owner = new BlockRecord((this.owner as BlockRecord).name);
+		const owner = this.owner as BlockRecord | null;
+		if (owner != null) {
+			const cloneOwner = new BlockRecord(owner.name);
+			cloneOwner.blockEnd = clone;
+		}
 		return clone;
 	}
 
-	public override applyTransform(transform: any): void {
+	public override applyTransform(transform: unknown): void {
 		// Nothing to transform for block end markers
 	}
 

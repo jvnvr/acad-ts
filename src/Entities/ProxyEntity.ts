@@ -1,8 +1,10 @@
 import { Entity } from './Entity.js';
+import { DxfClass } from '../Classes/DxfClass.js';
 import { DxfFileToken } from '../DxfFileToken.js';
 import { DxfSubclassMarker } from '../DxfSubclassMarker.js';
 import { ObjectType } from '../Types/ObjectType.js';
 import { ACadVersion } from '../ACadVersion.js';
+import type { BoundingBox } from '../Math/BoundingBox.js';
 
 export class ProxyEntity extends Entity {
 	get classId(): number {
@@ -13,7 +15,7 @@ export class ProxyEntity extends Entity {
 		return (this.version as number) | (this.maintenanceVersion << 16);
 	}
 
-	dxfClass: any = null;
+	dxfClass: DxfClass | null = null;
 
 	maintenanceVersion: number = 0;
 
@@ -39,7 +41,7 @@ export class ProxyEntity extends Entity {
 		// No-op
 	}
 
-	override getBoundingBox(): any {
+	override getBoundingBox(): BoundingBox | null {
 		return null;
 	}
 }

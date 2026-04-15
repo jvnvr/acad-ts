@@ -134,7 +134,7 @@ export class TextEntity extends Entity implements IText {
 		this._style = this._style.clone() as TextStyle;
 	}
 
-	protected override _tableOnRemove(sender: any, e: CollectionChangedEventArgs): void {
+	protected override _tableOnRemove(sender: unknown, e: CollectionChangedEventArgs): void {
 		super._tableOnRemove(sender, e);
 		if (e.item === this._style) {
 			this._style = this.document!.textStyles.get(TextStyle.DefaultName)!;

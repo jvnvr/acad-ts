@@ -96,13 +96,13 @@ export class Insert extends Entity {
 	constructor(block?: BlockRecord) {
 		super();
 		if (block) {
-			if ((block as any).document != null) {
+			if (block.document != null) {
 				this.block = block.clone() as BlockRecord;
 			} else {
 				this.block = block;
 			}
 
-			const attDefs = (block as any).attributeDefinitions;
+			const attDefs = block.attributeDefinitions;
 			if (attDefs) {
 				for (const item of attDefs) {
 					const attribute = new AttributeEntity(item);
@@ -113,7 +113,7 @@ export class Insert extends Entity {
 		}
 	}
 
-	override applyTransform(transform: any): void {
+	override applyTransform(transform: unknown): void {
 		const axisScale = this.getTransformAxisScale(transform);
 		this.insertPoint = this.applyTransformToPoint(transform, this.insertPoint);
 		this.normal = this.applyTransformToVector(transform, this.normal).normalize();
@@ -204,7 +204,7 @@ export class Insert extends Entity {
 
 	updateAttributes(): void {
 		if (!this.block) return;
-		const attDefs: AttributeDefinition[] = (this.block as any).attributeDefinitions ?? [];
+		const attDefs: AttributeDefinition[] = this.block.attributeDefinitions ?? [];
 		const defTags = attDefs.map(d => d.tag);
 		const attTags = this.attributes.map(a => a.tag);
 

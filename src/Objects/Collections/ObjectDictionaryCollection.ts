@@ -3,8 +3,8 @@ import { NonGraphicalObject } from '../NonGraphicalObject.js';
 import { CollectionChangedEventArgs } from '../../CollectionChangedEventArgs.js';
 
 export abstract class ObjectDictionaryCollection<T extends NonGraphicalObject> implements Iterable<T> {
-	onAdd: ((sender: any, args: CollectionChangedEventArgs) => void) | null = null;
-	onRemove: ((sender: any, args: CollectionChangedEventArgs) => void) | null = null;
+	onAdd: ((sender: unknown, args: CollectionChangedEventArgs) => void) | null = null;
+	onRemove: ((sender: unknown, args: CollectionChangedEventArgs) => void) | null = null;
 
 	get handle(): number { return this._dictionary.handle; }
 

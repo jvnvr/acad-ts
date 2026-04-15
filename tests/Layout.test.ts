@@ -13,6 +13,26 @@ class TestCadDocumentBuilder extends CadDocumentBuilder {
 	}
 
 	override get KeepUnknownNonGraphicalObjects(): boolean {
+
+		it('ClonesStandaloneLayoutsWithAssociatedBlocksWithoutRecursing', () => {
+			const layout = new Layout(Layout.PaperLayoutName);
+			const record = new BlockRecord(BlockRecord.PaperSpaceName);
+			const viewport = new Viewport();
+
+			layout.associatedBlock = record;
+			viewport.id = 7;
+			layout.addViewport(viewport);
+			layout.lastActiveViewport = viewport;
+
+			const clone = layout.clone() as Layout;
+
+			expect(clone).not.toBe(layout);
+			expect(clone.associatedBlock).not.toBe(record);
+			expect(clone.associatedBlock?.layout).toBe(clone);
+			expect(clone.viewports).toHaveLength(1);
+			expect(clone.viewports?.[0]).not.toBe(viewport);
+			expect(clone.lastActiveViewport).toBe(clone.viewports?.[0] ?? null);
+		});
 		return true;
 	}
 

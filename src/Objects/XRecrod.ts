@@ -8,7 +8,7 @@ import { GroupCodeValue } from '../GroupCodeValue.js';
 
 export class XRecordEntry {
 	readonly code: number;
-	value: any;
+	value: unknown;
 	owner: XRecord;
 
 	get groupCode(): number {
@@ -21,7 +21,7 @@ export class XRecordEntry {
 		return gc === 5 || gc === 105;
 	}
 
-	constructor(code: number, value: any, owner: XRecord) {
+	constructor(code: number, value: unknown, owner: XRecord) {
 		this.code = code;
 		this.value = value;
 		this.owner = owner;
@@ -66,11 +66,11 @@ export class XRecord extends NonGraphicalObject {
 		super(name);
 	}
 
-	createEntry(code: number, value: any): void {
+	createEntry(code: number, value: unknown): void {
 		this._entries.push(new XRecordEntry(code, value, this));
 	}
 
-	CreateEntry(code: number, value: any): void {
+	CreateEntry(code: number, value: unknown): void {
 		this.createEntry(code, value);
 	}
 }

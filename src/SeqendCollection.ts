@@ -5,8 +5,8 @@ import { Seqend } from './Entities/Seqend.js';
 import { ISeqendCollection } from './ISeqendColleciton.js';
 
 export class SeqendCollection<T extends CadObject> extends CadObjectCollection<T> implements ISeqendCollection {
-	public onSeqendAdded: ((sender: any, args: CollectionChangedEventArgs) => void) | null = null;
-	public onSeqendRemoved: ((sender: any, args: CollectionChangedEventArgs) => void) | null = null;
+	public onSeqendAdded: ((sender: unknown, args: CollectionChangedEventArgs) => void) | null = null;
+	public onSeqendRemoved: ((sender: unknown, args: CollectionChangedEventArgs) => void) | null = null;
 
 	public get seqend(): Seqend | null {
 		if (this._entries.size > 0) return this._seqend;
@@ -45,7 +45,7 @@ export class SeqendCollection<T extends CadObject> extends CadObjectCollection<T
 		return e;
 	}
 
-	[Symbol.iterator](): Iterator<any> {
+	[Symbol.iterator](): Iterator<T> {
 		return this._entries[Symbol.iterator]();
 	}
 }

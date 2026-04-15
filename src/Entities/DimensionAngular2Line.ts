@@ -1,6 +1,7 @@
 import { Dimension } from './Dimension.js';
 import { DxfFileToken } from '../DxfFileToken.js';
 import { DxfSubclassMarker } from '../DxfSubclassMarker.js';
+import { BoundingBox } from '../Math/BoundingBox.js';
 import { ObjectType } from '../Types/ObjectType.js';
 import { DimensionType } from './DimensionType.js';
 import { XYZ } from '../Math/XYZ.js';
@@ -77,22 +78,14 @@ export class DimensionAngular2Line extends Dimension {
 
 	override applyTransform(transform: any): void {
 		super.applyTransform(transform);
-		// TODO: Transform points
+		this.angleVertex = this.applyTransformToPoint(transform, this.angleVertex);
+		this.dimensionArc = this.applyTransformToPoint(transform, this.dimensionArc);
+		this.firstPoint = this.applyTransformToPoint(transform, this.firstPoint);
+		this.secondPoint = this.applyTransformToPoint(transform, this.secondPoint);
 	}
 
-	override getBoundingBox(): any {
-		return {
-			min: {
-				x: Math.min(this.firstPoint.x, this.secondPoint.x),
-				y: Math.min(this.firstPoint.y, this.secondPoint.y),
-				z: Math.min(this.firstPoint.z, this.secondPoint.z),
-			},
-			max: {
-				x: Math.max(this.firstPoint.x, this.secondPoint.x),
-				y: Math.max(this.firstPoint.y, this.secondPoint.y),
-				z: Math.max(this.firstPoint.z, this.secondPoint.z),
-			},
-		};
+	override getBoundingBox(): BoundingBox {
+		return BoundingBox.FromPoints([this.angleVertex, this.dimensionArc, this.firstPoint, this.secondPoint, this.definitionPoint]);
 	}
 
 	override updateBlock(): void {

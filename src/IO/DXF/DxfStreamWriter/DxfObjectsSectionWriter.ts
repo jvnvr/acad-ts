@@ -324,7 +324,7 @@ export class DxfObjectsSectionWriter extends DxfSectionWriterBase {
     for (const element of style.elements) {
       this._writer.Write(49, element.offset, map);
       this._writer.Write(62, element.color.index, map);
-      this._writer.Write(6, element.lineType.Name, map);
+      this._writer.Write(6, element.lineType?.name ?? 'ByLayer', map);
     }
   }
 

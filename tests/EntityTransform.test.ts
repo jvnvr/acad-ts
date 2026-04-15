@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { Arc } from '../src/Entities/Arc.js';
 import { Ellipse } from '../src/Entities/Ellipse.js';
 import { Hatch, HatchBoundaryPath, HatchBoundaryPathLine } from '../src/Entities/Hatch.js';
+import { HatchPattern, HatchPatternLine } from '../src/Entities/HatchPattern.js';
 import { Insert } from '../src/Entities/Insert.js';
 import { Line } from '../src/Entities/Line.js';
 import { XYZ } from '../src/Math/XYZ.js';
@@ -42,6 +43,29 @@ describe('EntityTransformTests', () => {
 		expect(transformed.end.y).toBeCloseTo(-1);
 		expect(hatch.seedPoints[0].x).toBeCloseTo(4);
 		expect(hatch.seedPoints[0].y).toBeCloseTo(-1);
+	});
+
+	it('UpdatesHatchPatternGeometryOnTransform', () => {
+		const patternLine = new HatchPatternLine();
+		patternLine.basePoint = new XY(1, 2);
+		patternLine.offset = new XY(0, 1);
+		patternLine.dashLengths = [2, -1];
+
+		const pattern = new HatchPattern('TEST');
+		pattern.lines.push(patternLine);
+
+		const hatch = new Hatch();
+		hatch.pattern = pattern;
+		hatch.patternScale = 1;
+
+		hatch.applyScaling(new XYZ(2, 2, 1));
+
+		expect(hatch.patternScale).toBeCloseTo(2);
+		expect(patternLine.basePoint.x).toBeCloseTo(2);
+		expect(patternLine.basePoint.y).toBeCloseTo(4);
+		expect(patternLine.offset.x).toBeCloseTo(0);
+		expect(patternLine.offset.y).toBeCloseTo(2);
+		expect(patternLine.dashLengths).toEqual([4, -2]);
 	});
 
 	it('ReturnsInsertBoundsAndExplodedEntitiesFromBlockTransform', () => {

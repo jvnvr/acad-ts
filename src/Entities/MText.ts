@@ -13,7 +13,11 @@ import { LineSpacingStyleType } from './LineSpacingStyleType.js';
 import { Color } from '../Color.js';
 import { CollectionChangedEventArgs } from '../CollectionChangedEventArgs.js';
 import { IText } from './IText.js';
+import { BoundingBox } from '../Math/BoundingBox.js';
+import { Transform } from '../Math/Transform.js';
+import { XY } from '../Math/XY.js';
 import { XYZ } from '../Math/XYZ.js';
+import { TextProcessor } from '../Text/TextProcessor.js';
 
 export class TextColumnData {
 	columnType: ColumnType = ColumnType.NoColumns;
@@ -94,8 +98,7 @@ export class MText extends Entity implements IText {
 	}
 
 	get plainText(): string {
-		// TODO: TextProcessor.Parse not available
-		return this._value;
+		return TextProcessor.parse(this._value).result;
 	}
 
 	rectangleHeight: number = 0;
@@ -146,7 +149,25 @@ export class MText extends Entity implements IText {
 	}
 
 	override applyTransform(transform: any): void {
-		// TODO: Complex transform with attachment point swapping
+		if (!(transform instanceof Transform)) {
+			return;
+		}
+
+		this.insertPoint = this.applyTransformToPoint(transform, this.insertPoint);
+		const alignment = this.applyTransformToVector(transform, this.alignmentPoint);
+		if (alignment.getLength() > 0) {
+			this.alignmentPoint = alignment.normalize();
+		}
+		this.normal = this.transformNormal(transform, this.normal);
+
+		const scale = this.getTransformAxisScale(transform);
+		const safeX = scale.x === 0 ? 1 : scale.x;
+		const safeY = scale.y === 0 ? 1 : scale.y;
+		this.height *= safeY;
+		this.horizontalWidth *= safeX;
+		this.rectangleWidth *= safeX;
+		this.rectangleHeight *= safeY;
+		this.verticalHeight *= safeY;
 	}
 
 	override clone(): CadObject {
@@ -158,8 +179,56 @@ export class MText extends Entity implements IText {
 		return clone;
 	}
 
-	override getBoundingBox(): any {
-		return null;
+	override getBoundingBox(): BoundingBox {
+		const lines = this.getPlainTextLines();
+		const lineCount = Math.max(1, lines.length);
+		const estimatedWidth = this.rectangleWidth > 0
+			? this.rectangleWidth
+			: Math.max(...lines.map((line) => line.length), 0) * this.height * this.horizontalWidth * 0.6;
+		const estimatedHeight = this.rectangleHeight > 0
+			? this.rectangleHeight
+			: this.height * (1 + (lineCount - 1) * this.lineSpacing);
+
+		let offsetX = 0;
+		switch (this.attachmentPoint) {
+			case AttachmentPointType.TopCenter:
+			case AttachmentPointType.MiddleCenter:
+			case AttachmentPointType.BottomCenter:
+				offsetX = -estimatedWidth / 2;
+				break;
+			case AttachmentPointType.TopRight:
+			case AttachmentPointType.MiddleRight:
+			case AttachmentPointType.BottomRight:
+				offsetX = -estimatedWidth;
+				break;
+		}
+
+		let offsetY = 0;
+		switch (this.attachmentPoint) {
+			case AttachmentPointType.MiddleLeft:
+			case AttachmentPointType.MiddleCenter:
+			case AttachmentPointType.MiddleRight:
+				offsetY = -estimatedHeight / 2;
+				break;
+			case AttachmentPointType.BottomLeft:
+			case AttachmentPointType.BottomCenter:
+			case AttachmentPointType.BottomRight:
+				offsetY = -estimatedHeight;
+				break;
+		}
+
+		const rotation = this.rotation;
+		const corners = [
+			new XY(offsetX, offsetY),
+			new XY(offsetX + estimatedWidth, offsetY),
+			new XY(offsetX, offsetY + estimatedHeight),
+			new XY(offsetX + estimatedWidth, offsetY + estimatedHeight),
+		].map((point) => {
+			const rotated = XY.Rotate(point, rotation);
+			return new XYZ(this.insertPoint.x + rotated.x, this.insertPoint.y + rotated.y, this.insertPoint.z);
+		});
+
+		return BoundingBox.FromPoints(corners);
 	}
 
 	getPlainTextLines(): string[] {
@@ -183,7 +252,7 @@ export class MText extends Entity implements IText {
 		this._style = this._style.clone() as TextStyle;
 	}
 
-	protected override _tableOnRemove(sender: any, e: CollectionChangedEventArgs): void {
+	protected override _tableOnRemove(sender: unknown, e: CollectionChangedEventArgs): void {
 		super._tableOnRemove(sender, e);
 		if (e.item === this._style) {
 			this._style = this.document!.textStyles.get(TextStyle.DefaultName)!;

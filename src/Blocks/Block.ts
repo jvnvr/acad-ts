@@ -6,7 +6,7 @@ import type { BoundingBox } from '../Math/BoundingBox.js';
 import { Entity } from '../Entities/Entity.js';
 import { CadObject } from '../CadObject.js';
 import { XYZ } from '../Math/XYZ.js';
-import type { BlockRecord } from '../Tables/BlockRecord.js';
+import { BlockRecord } from '../Tables/BlockRecord.js';
 
 export const XYZ_Zero: XYZ = new XYZ(0, 0, 0);
 
@@ -55,12 +55,15 @@ export class Block extends Entity {
 
 	public override clone(): CadObject {
 		const clone = super.clone() as Block;
-		// TODO: clone.owner = new BlockRecord(this.name);
+		if (this.blockOwner != null) {
+			const owner = new BlockRecord(this.blockOwner.name);
+			owner.blockEntity = clone;
+		}
 		return clone;
 	}
 
-	public override applyTransform(transform: any): void {
-		// TODO: apply block transform when block geometry support is implemented
+	public override applyTransform(transform: unknown): void {
+		this.basePoint = this.applyTransformToPoint(transform, this.basePoint);
 	}
 
 	public override getBoundingBox(): BoundingBox | null {

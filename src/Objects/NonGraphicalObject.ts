@@ -1,12 +1,13 @@
 import { CadObject } from '../CadObject.js';
+import { OnNameChangedArgs } from '../OnNameChangedArgs.js';
 import { ObjectType } from '../Types/ObjectType.js';
 
 export abstract class NonGraphicalObject extends CadObject {
-	onNameChanged: ((sender: any, args: { oldName: string; newName: string }) => void) | null = null;
+	onNameChanged: ((sender: unknown, args: OnNameChangedArgs) => void) | null = null;
 
 	get name(): string { return this._name; }
 	set name(value: string) {
-		this.onNameChanged?.call(this, this, { oldName: this._name, newName: value });
+		this.onNameChanged?.call(this, this, new OnNameChangedArgs(this._name, value));
 		this._name = value;
 	}
 

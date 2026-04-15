@@ -55,7 +55,7 @@ export abstract class CadObject implements IHandledCadObject {
 	}
 
 	public clone(): CadObject {
-		// TODO: MemberwiseClone equivalent - shallow copy
+		// Shallow-copy the object graph, then reset document-owned state below.
 		const clone = Object.create(Object.getPrototypeOf(this));
 		Object.assign(clone, this);
 

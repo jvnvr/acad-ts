@@ -56,8 +56,13 @@ export class HatchPattern {
 
 	update(translation: XY, rotation: number, scale: number): void {
 		for (const line of this.lines) {
+			const scaledBasePoint = new XY(line.basePoint.x * scale, line.basePoint.y * scale);
+			const scaledOffset = new XY(line.offset.x * scale, line.offset.y * scale);
+			const rotatedBasePoint = XY.Rotate(scaledBasePoint, rotation);
+			const rotatedOffset = XY.Rotate(scaledOffset, rotation);
 			line.angle += rotation;
-			// TODO: Apply transform to basePoint and offset
+			line.basePoint = new XY(rotatedBasePoint.x + translation.x, rotatedBasePoint.y + translation.y);
+			line.offset = rotatedOffset;
 			line.dashLengths = line.dashLengths.map(d => d * scale);
 		}
 	}

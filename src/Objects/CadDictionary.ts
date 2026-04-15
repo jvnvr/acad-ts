@@ -7,8 +7,8 @@ import { ObjectType } from '../Types/ObjectType.js';
 import { DictionaryCloningFlags } from './DictionaryCloningFlags.js';
 
 export class CadDictionary extends NonGraphicalObject implements Iterable<NonGraphicalObject> {
-	onAdd: ((sender: any, args: CollectionChangedEventArgs) => void) | null = null;
-	onRemove: ((sender: any, args: CollectionChangedEventArgs) => void) | null = null;
+	onAdd: ((sender: unknown, args: CollectionChangedEventArgs) => void) | null = null;
+	onRemove: ((sender: unknown, args: CollectionChangedEventArgs) => void) | null = null;
 
 	clonningFlags: DictionaryCloningFlags = DictionaryCloningFlags.NotApplicable;
 

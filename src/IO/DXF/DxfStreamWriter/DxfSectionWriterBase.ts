@@ -814,7 +814,7 @@ export abstract class DxfSectionWriterBase {
     this._writer.Write(70, mline.justification, subclass);
     this._writer.Write(71, mline.flags, subclass);
     this._writer.Write(72, mline.vertices.length);
-    this._writer.Write(73, mline.style?.Elements?.length ?? 0);
+    this._writer.Write(73, mline.style?.elements.length ?? 0);
 
     this._writer.WriteVector(10, mline.startPoint, subclass);
     this._writer.WriteVector(210, mline.normal, subclass);

@@ -2,8 +2,8 @@ import { CadObject } from './CadObject.js';
 import { CollectionChangedEventArgs } from './CollectionChangedEventArgs.js';
 
 export class CadObjectCollection<T extends CadObject> implements Iterable<T> {
-	public onAdd: ((sender: any, args: CollectionChangedEventArgs) => void) | null = null;
-	public onRemove: ((sender: any, args: CollectionChangedEventArgs) => void) | null = null;
+	public onAdd: ((sender: unknown, args: CollectionChangedEventArgs) => void) | null = null;
+	public onRemove: ((sender: unknown, args: CollectionChangedEventArgs) => void) | null = null;
 
 	public readonly owner: CadObject;
 

@@ -154,16 +154,27 @@ export class BlockRecord extends TableEntry {
 	private _blockEntity!: Block;
 	private _layout: Layout | null = null;
 
-	public constructor(name?: string) {
+	public constructor(name?: string, xrefFile?: string, isOverlay: boolean = false) {
 		super(name);
 		this._blockEntity = new Block(this);
 		this._blockEnd = new BlockEnd(this);
 		this.entities = new CadObjectCollection<Entity>(this);
+
+		if (xrefFile != null) {
+			this.blockEntity.xRefPath = xrefFile;
+			this.blockFlags |= isOverlay ? BlockTypeFlags.XRefOverlay : BlockTypeFlags.XRef;
+		}
 	}
 
-	// TODO: xref constructor (name, xrefFile, isOverlay)
-
 	public override clone(): CadObject {
+		return this.cloneCore(true);
+	}
+
+	cloneWithoutLayout(): BlockRecord {
+		return this.cloneCore(false);
+	}
+
+	private cloneCore(includeLayout: boolean): BlockRecord {
 		const clone = super.clone() as BlockRecord;
 
 		clone._layout = null;
@@ -178,8 +189,8 @@ export class BlockRecord extends TableEntry {
 			entityMap.set(item, entity);
 		}
 
-		if (this.layout != null) {
-			const layout = this.layout.clone() as Layout;
+		if (includeLayout && this.layout != null) {
+			const layout = this.layout.cloneWithoutAssociatedBlock();
 			layout.associatedBlock = clone;
 		}
 

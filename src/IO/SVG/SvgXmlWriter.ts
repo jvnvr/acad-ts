@@ -226,7 +226,7 @@ export class SvgXmlWriter {
     }
   }
 
-  protected triggerNotification(sender: any, e: NotificationEventArgs): void {
+  protected triggerNotification(sender: object, e: NotificationEventArgs): void {
     if (this.OnNotification) {
       this.OnNotification(sender, e);
     }

@@ -17,7 +17,7 @@ import { XY } from '../Math/XY.js';
 import { Transform } from '../Math/Transform.js';
 
 function isBlockRecordOwner(value: unknown): value is BlockRecord {
-	return value != null && typeof value === 'object' && 'blockEntity' in (value as any);
+	return value != null && typeof value === 'object' && 'blockEntity' in value;
 }
 
 export abstract class Entity extends CadObject implements IEntity {
@@ -167,7 +167,6 @@ export abstract class Entity extends CadObject implements IEntity {
 
 	/** @internal */
 	unassignDocument(): void {
-		// TODO: Remove event listeners properly
 		super.unassignDocument();
 
 		this._layer = this.layer.clone() as Layer;
@@ -228,26 +227,7 @@ export abstract class Entity extends CadObject implements IEntity {
 		);
 	}
 
-	protected applyWorldMatrix(
-		xyz: XYZ,
-		transform: any /* Transform */,
-		transOW: any /* Matrix3 */,
-		transWO: any /* Matrix3 */
-	): XYZ {
-		// TODO: Matrix3 operations not available
-		return xyz;
-	}
-
-	protected getWorldMatrix(
-		transform: any /* Transform */,
-		normal: XYZ,
-		newNormal: XYZ
-	): { matrix: any; transOW: any; transWO: any } {
-		// TODO: Matrix3.ArbitraryAxis not available
-		return { matrix: null, transOW: null, transWO: null };
-	}
-
-	protected _tableOnRemove(sender: any, e: CollectionChangedEventArgs): void {
+	protected _tableOnRemove(sender: unknown, e: CollectionChangedEventArgs): void {
 		if (e.item === this.layer) {
 			this.layer = this.document!.layers.get(Layer.DefaultName)!;
 		}
@@ -256,8 +236,7 @@ export abstract class Entity extends CadObject implements IEntity {
 		}
 	}
 
-	protected transformNormal(transform: any /* Transform */, normal: XYZ): XYZ {
-		// TODO: transform.ApplyRotation and Normalize not available
-		return normal;
+	protected transformNormal(transform: unknown, normal: XYZ): XYZ {
+		return this.applyTransformToVector(transform, normal).normalize();
 	}
 }

@@ -1,5 +1,9 @@
 import { Entity } from './Entity.js';
+import { DxfClass } from '../Classes/DxfClass.js';
 import { ObjectType } from '../Types/ObjectType.js';
+import type { BoundingBox } from '../Math/BoundingBox.js';
+
+type DxfClassLookupResult = { result: DxfClass | null; found: boolean };
 
 export class UnknownEntity extends Entity {
 	override get objectType(): ObjectType {
@@ -17,11 +21,14 @@ export class UnknownEntity extends Entity {
 	private _objectName: string;
 	private _subclassMarker: string;
 
-	constructor(dxfClass?: any) {
+	constructor(dxfClass?: DxfClass | DxfClassLookupResult | null) {
 		super();
-		if (dxfClass) {
-			this._objectName = dxfClass.dxfName || '';
-			this._subclassMarker = dxfClass.cppClassName || '';
+		const resolvedClass = dxfClass instanceof DxfClass
+			? dxfClass
+			: dxfClass?.result ?? null;
+		if (resolvedClass) {
+			this._objectName = resolvedClass.dxfName || '';
+			this._subclassMarker = resolvedClass.cppClassName || '';
 		} else {
 			this._objectName = '';
 			this._subclassMarker = '';
@@ -32,7 +39,7 @@ export class UnknownEntity extends Entity {
 		// No-op
 	}
 
-	override getBoundingBox(): any {
+	override getBoundingBox(): BoundingBox | null {
 		return null;
 	}
 }

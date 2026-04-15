@@ -7,6 +7,9 @@ import { DxfSubclassMarker } from '../DxfSubclassMarker.js';
 import { ObjectType } from '../Types/ObjectType.js';
 import { LineWeightType } from '../Types/LineWeightType.js';
 import { XYZ } from '../Math/XYZ.js';
+import type { BoundingBox } from '../Math/BoundingBox.js';
+import type { TableStyle } from '../Objects/TableStyle.js';
+import type { TextStyle } from '../Tables/TextStyle.js';
 
 // === Enums ===
 
@@ -255,7 +258,7 @@ export class ContentFormat {
 	rotation: number = 0;
 	scale: number = 0;
 	textHeight: number = 0;
-	textStyle: any = null;
+	textStyle: TextStyle | null = null;
 	valueDataType: number = 0;
 	valueFormatString: string = '';
 	valueUnitType: number = 0;
@@ -404,10 +407,10 @@ export class TableEntity extends Insert {
 		return this._content.rows;
 	}
 
-	get style(): any {
+	get style(): TableStyle | null {
 		return this._content.style;
 	}
-	set style(value: any) {
+	set style(value: TableStyle | null) {
 		this._content.style = value;
 	}
 
@@ -431,7 +434,7 @@ export class TableEntity extends Insert {
 		return super.clone();
 	}
 
-	override getBoundingBox(): any {
+	override getBoundingBox(): BoundingBox | null {
 		return null;
 	}
 
@@ -443,5 +446,5 @@ export class TableEntity extends Insert {
 export class TableContent {
 	columns: TableEntityColumn[] = [];
 	rows: TableEntityRow[] = [];
-	style: any = null;
+	style: TableStyle | null = null;
 }

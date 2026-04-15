@@ -1,4 +1,5 @@
 import { Entity } from './Entity.js';
+import { AttributeDefinition } from './AttributeDefinition.js';
 import { CadObject } from '../CadObject.js';
 import { DxfFileToken } from '../DxfFileToken.js';
 import { DxfSubclassMarker } from '../DxfSubclassMarker.js';
@@ -11,12 +12,16 @@ import { TextAlignmentType } from '../TextAlignmentType.js';
 import { TextAttachmentDirectionType } from '../TextAttachmentDirectionType.js';
 import { TextAttachmentPointType } from '../TextAttachmentPoint.js';
 import { TextAttachmentType } from '../TextAttachmentType.js';
+import { BoundingBox } from '../Math/BoundingBox.js';
 import { XYZ } from '../Math/XYZ.js';
-import { MultiLeaderObjectContextData } from '../Objects/MultiLeaderObjectContextData.js';
+import { LeaderLine, LeaderRoot, MultiLeaderObjectContextData, StartEndPointPair } from '../Objects/MultiLeaderObjectContextData.js';
+import { MultiLeaderStyle } from '../Objects/MultiLeaderStyle.js';
+import { BlockRecord } from '../Tables/BlockRecord.js';
 import { LineType } from '../Tables/LineType.js';
+import { TextStyle } from '../Tables/TextStyle.js';
 
 export class MultiLeaderBlockAttribute {
-	attributeDefinition: any = null;
+	attributeDefinition: AttributeDefinition | null = null;
 	index: number = 0;
 	width: number = 0;
 	text: string = '';
@@ -32,7 +37,7 @@ export class MultiLeaderBlockAttribute {
 }
 
 export class MultiLeader extends Entity {
-	arrowhead: any = null;
+	arrowhead: BlockRecord | null = null;
 
 	arrowheadSize: number = 0;
 
@@ -42,7 +47,7 @@ export class MultiLeader extends Entity {
 
 	blockContentConnection: number = 0;
 
-	blockContentId: any = null;
+	blockContentId: BlockRecord | null = null;
 
 	blockContentRotation: number = 0;
 
@@ -82,7 +87,7 @@ export class MultiLeader extends Entity {
 
 	scaleFactor: number = 1.0;
 
-	style: any = null;
+	style: MultiLeaderStyle | null = null;
 
 	override get subclassMarker(): string {
 		return DxfSubclassMarker.MultiLeader;
@@ -106,7 +111,7 @@ export class MultiLeader extends Entity {
 
 	textRightAttachment: TextAttachmentType = TextAttachmentType.MiddleOfTopLine;
 
-	textStyle: any = null;
+	textStyle: TextStyle | null = null;
 
 	textTopAttachment: TextAttachmentType = TextAttachmentType.CenterOfText;
 
@@ -120,12 +125,46 @@ export class MultiLeader extends Entity {
 
 	override clone(): CadObject {
 		const clone = super.clone() as MultiLeader;
-		clone.contextData = this.contextData; // TODO: deep clone
+		clone.arrowhead = this.arrowhead?.clone() as BlockRecord | null ?? null;
+		clone.blockContentId = this.blockContentId?.clone() as BlockRecord | null ?? null;
+		clone.style = this.style?.clone() as MultiLeaderStyle | null ?? null;
+		clone.textStyle = this.textStyle?.clone() as TextStyle | null ?? null;
+		clone.contextData = this.contextData.clone() as MultiLeaderObjectContextData;
 		clone.blockAttributes = this.blockAttributes.map(a => a.clone());
 		return clone;
 	}
 
-	getBoundingBox(): any { return null; }
+	getBoundingBox(): BoundingBox | null {
+		const points: XYZ[] = [];
+		const pushPair = (pair: StartEndPointPair): void => {
+			points.push(pair.startPoint, pair.endPoint);
+		};
+		const pushLeaderLine = (line: LeaderLine): void => {
+			points.push(...line.points);
+			for (const pair of line.startEndPoints) {
+				pushPair(pair);
+			}
+		};
+		const pushLeaderRoot = (root: LeaderRoot): void => {
+			points.push(root.connectionPoint, root.direction);
+			for (const pair of root.breakStartEndPointsPairs) {
+				pushPair(pair);
+			}
+			for (const line of root.lines) {
+				pushLeaderLine(line);
+			}
+		};
+
+		points.push(this.contextData.basePoint, this.contextData.contentBasePoint, this.contextData.textLocation);
+		if (this.contextData.hasContentsBlock) {
+			points.push(this.contextData.blockContentLocation);
+		}
+		for (const root of this.contextData.leaderRoots) {
+			pushLeaderRoot(root);
+		}
+
+		return points.length > 0 ? BoundingBox.FromPoints(points) : null;
+	}
 }
 
 export { MultiLeaderPropertyOverrideFlags } from './MultiLeaderPropertyOverrideFlags.js';

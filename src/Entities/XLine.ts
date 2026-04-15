@@ -1,6 +1,7 @@
 import { Entity } from './Entity.js';
 import { DxfFileToken } from '../DxfFileToken.js';
 import { DxfSubclassMarker } from '../DxfSubclassMarker.js';
+import { BoundingBox } from '../Math/BoundingBox.js';
 import { ObjectType } from '../Types/ObjectType.js';
 import { XYZ } from '../Math/XYZ.js';
 
@@ -22,11 +23,14 @@ export class XLine extends Entity {
 	}
 
 	override applyTransform(transform: any): void {
-		// TODO: transform.ApplyTransform/ApplyRotation not available
+		this.firstPoint = this.applyTransformToPoint(transform, this.firstPoint);
+		const direction = this.applyTransformToVector(transform, this.direction);
+		if (direction.getLength() > 0) {
+			this.direction = direction.normalize();
+		}
 	}
 
-	override getBoundingBox(): any {
-		// BoundingBox.Infinite
-		return null;
+	override getBoundingBox(): BoundingBox {
+		return BoundingBox.Infinite;
 	}
 }

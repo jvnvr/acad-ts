@@ -78,7 +78,9 @@ export class DimensionAligned extends Dimension {
 	}
 
 	override updateBlock(): void {
-		super.updateBlock();
-		// TODO: Complex block generation
+		this.populateBlock(
+			[[this.firstPoint, this.secondPoint]],
+			[this.firstPoint, this.secondPoint, this.definitionPoint],
+		);
 	}
 }

@@ -69,14 +69,16 @@ export abstract class CadDocumentBuilder {
 			return;
 		}
 
+		const handle = template.CadObject.handle;
+
 		if (this.isDictionaryTemplate(template)) {
-			this.dictionaryTemplates.set((template as any).CadObject.handle, template as ICadDictionaryTemplate);
+			this.dictionaryTemplates.set(handle, template);
 		} else if (this.isTableTemplate(template)) {
-			this.tableTemplates.set((template as any).CadObject.handle, template as ICadTableTemplate);
+			this.tableTemplates.set(handle, template);
 		} else if (this.isTableEntryTemplate(template)) {
-			this.tableEntryTemplates.set((template as any).CadObject.handle, template as ICadTableEntryTemplate);
+			this.tableEntryTemplates.set(handle, template);
 		} else {
-			this.cadObjectsTemplates.set((template as any).CadObject.handle, template);
+			this.cadObjectsTemplates.set(handle, template);
 		}
 	}
 
@@ -174,11 +176,8 @@ export abstract class CadDocumentBuilder {
 			return null;
 		}
 
-		let table: Table<any> | null = null;
-
-		// Determine the table based on T's type at runtime
-		// We'll try each table in order
-		const tables: Table<any>[] = [
+		type TableLookup = { tryGetValue(name: string): TableEntry | null };
+		const tables: TableLookup[] = [
 			this.AppIds,
 			this.Layers,
 			this.LineTypesTable,

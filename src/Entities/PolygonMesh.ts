@@ -1,6 +1,7 @@
 import { Polyline } from './Polyline.js';
 import { DxfFileToken } from '../DxfFileToken.js';
 import { DxfSubclassMarker } from '../DxfSubclassMarker.js';
+import type { BoundingBox } from '../Math/BoundingBox.js';
 import { ObjectType } from '../Types/ObjectType.js';
 import { PolylineFlags } from './PolylineFlags.js';
 import { SmoothSurfaceType } from './SmoothSurfaceType.js';
@@ -29,6 +30,7 @@ export class PolygonMesh extends Polyline {
 	override get subclassMarker(): string {
 		return DxfSubclassMarker.PolygonMesh;
 	}
-
-  getBoundingBox(): any { return null; }
+	override getBoundingBox(): BoundingBox | null {
+		return super.getBoundingBox();
+	}
 }

@@ -49,7 +49,16 @@ export class DimensionLinear extends DimensionAligned {
 	}
 
 	override updateBlock(): void {
-		this.createBlock();
-		// TODO: Complex block generation with rotation
+		const direction = new XYZ(Math.cos(this.rotation), Math.sin(this.rotation), 0);
+		const end = new XYZ(
+			this.firstPoint.x + direction.x * this.measurement,
+			this.firstPoint.y + direction.y * this.measurement,
+			this.firstPoint.z + direction.z * this.measurement,
+		);
+
+		this.populateBlock(
+			[[this.firstPoint, end]],
+			[this.firstPoint, this.secondPoint, this.definitionPoint],
+		);
 	}
 }

@@ -1,6 +1,7 @@
 import { Dimension } from './Dimension.js';
 import { DxfFileToken } from '../DxfFileToken.js';
 import { DxfSubclassMarker } from '../DxfSubclassMarker.js';
+import { BoundingBox } from '../Math/BoundingBox.js';
 import { ObjectType } from '../Types/ObjectType.js';
 import { DimensionType } from './DimensionType.js';
 import { XYZ } from '../Math/XYZ.js';
@@ -47,18 +48,17 @@ export class DimensionDiameter extends Dimension {
 
 	override applyTransform(transform: any): void {
 		super.applyTransform(transform);
-		// TODO: Transform AngleVertex
+		this.angleVertex = this.applyTransformToPoint(transform, this.angleVertex);
 	}
 
-	override getBoundingBox(): any {
-		return {
-			min: new XYZ(this.insertionPoint.x - this.angleVertex.x, this.insertionPoint.y - this.angleVertex.y, this.insertionPoint.z - this.angleVertex.z,),
-			max: new XYZ(this.insertionPoint.x + this.angleVertex.x, this.insertionPoint.y + this.angleVertex.y, this.insertionPoint.z + this.angleVertex.z,),
-		};
+	override getBoundingBox(): BoundingBox {
+		return BoundingBox.FromPoints([this.definitionPoint, this.angleVertex, this.insertionPoint, this.textMiddlePoint]);
 	}
 
 	override updateBlock(): void {
-		super.updateBlock();
-		// TODO: Complex block generation
+		this.populateBlock(
+			[[this.angleVertex, this.definitionPoint]],
+			[this.angleVertex, this.definitionPoint, this.insertionPoint, this.textMiddlePoint],
+		);
 	}
 }

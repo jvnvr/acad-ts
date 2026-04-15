@@ -2,8 +2,15 @@ import { describe, expect, it } from 'vitest';
 import { DxfFileToken } from '../src/DxfFileToken.js';
 import { Dimension } from '../src/Entities/Dimension.js';
 import { DimensionAligned } from '../src/Entities/DimensionAligned.js';
+import { DimensionDiameter } from '../src/Entities/DimensionDiameter.js';
+import { DimensionLinear } from '../src/Entities/DimensionLinear.js';
+import { DimensionOrdinate } from '../src/Entities/DimensionOrdinate.js';
+import { DimensionRadius } from '../src/Entities/DimensionRadius.js';
 import { AttachmentPointType } from '../src/Entities/AttachmentPointType.js';
 import { DimensionType } from '../src/Entities/DimensionType.js';
+import { Line } from '../src/Entities/Line.js';
+import { MText } from '../src/Entities/MText.js';
+import { Point } from '../src/Entities/Point.js';
 import { Layer } from '../src/Tables/Layer.js';
 import { DimensionStyle } from '../src/Tables/DimensionStyle.js';
 import { TextStyle } from '../src/Tables/TextStyle.js';
@@ -134,5 +141,45 @@ describe('DimensionTests', () => {
 		expect(bounds.min.y).toBe(2);
 		expect(bounds.max.x).toBe(11);
 		expect(bounds.max.y).toBe(5);
+	});
+
+	it('GeneratesMinimalAnonymousBlocksForConcreteDimensionSubtypes', () => {
+		const aligned = new DimensionAligned(new XYZ(0, 0, 0), new XYZ(10, 0, 0));
+		aligned.definitionPoint = new XYZ(10, 3, 0);
+		aligned.textMiddlePoint = new XYZ(5, 3, 0);
+
+		const linear = new DimensionLinear();
+		linear.firstPoint = new XYZ(0, 0, 0);
+		linear.secondPoint = new XYZ(8, 4, 0);
+		linear.definitionPoint = new XYZ(8, 6, 0);
+		linear.textMiddlePoint = new XYZ(4, 6, 0);
+		linear.rotation = Math.PI / 4;
+
+		const diameter = new DimensionDiameter();
+		diameter.angleVertex = new XYZ(-4, 0, 0);
+		diameter.definitionPoint = new XYZ(4, 0, 0);
+		diameter.textMiddlePoint = new XYZ(0, 2, 0);
+
+		const ordinate = new DimensionOrdinate();
+		ordinate.featureLocation = new XYZ(1, 1, 0);
+		ordinate.definitionPoint = new XYZ(4, 1, 0);
+		ordinate.leaderEndpoint = new XYZ(4, 5, 0);
+		ordinate.textMiddlePoint = new XYZ(4, 3, 0);
+
+		const radius = new DimensionRadius();
+		radius.angleVertex = new XYZ(0, 0, 0);
+		radius.definitionPoint = new XYZ(3, 4, 0);
+		radius.textMiddlePoint = new XYZ(1.5, 2, 0);
+
+		const dimensions = [aligned, linear, diameter, ordinate, radius];
+		for (const dimension of dimensions) {
+			dimension.updateBlock();
+			const entities = Array.from(dimension.block?.entities ?? []);
+
+			expect(dimension.block?.isAnonymous).toBe(true);
+			expect(entities.some((entity) => entity instanceof Line)).toBe(true);
+			expect(entities.some((entity) => entity instanceof MText)).toBe(true);
+			expect(entities.some((entity) => entity instanceof Point)).toBe(true);
+		}
 	});
 });

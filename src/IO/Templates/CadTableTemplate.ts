@@ -23,8 +23,8 @@ export class CadTableTemplate<T extends TableEntry> extends CadTemplate implemen
 
 			try {
 				this.CadObject.add(entry);
-			} catch (ex: any) {
-				builder.Notify(`[${this.CadObject.subclassMarker}] error adding entry`, NotificationType.Error, ex);
+			} catch (ex: unknown) {
+				builder.Notify(`[${this.CadObject.subclassMarker}] error adding entry`, NotificationType.Error, ex instanceof Error ? ex : null);
 			}
 		}
 	}

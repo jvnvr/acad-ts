@@ -99,7 +99,9 @@ export abstract class CadWipeoutBase extends Entity {
 	private _flags: ImageDisplayFlags = ImageDisplayFlags.None;
 
 	override applyTransform(transform: any): void {
-		// TODO: transform operations not available
+		this.insertPoint = this.applyTransformToPoint(transform, this.insertPoint);
+		this.uVector = this.applyTransformToVector(transform, this.uVector);
+		this.vVector = this.applyTransformToVector(transform, this.vVector);
 	}
 
 	override clone(): CadObject {
@@ -113,19 +115,13 @@ export abstract class CadWipeoutBase extends Entity {
 			return null;
 		}
 
-		let minX = Infinity, minY = Infinity;
-		let maxX = -Infinity, maxY = -Infinity;
-		for (const v of this.clipBoundaryVertices) {
-			if (v.x < minX) minX = v.x;
-			if (v.y < minY) minY = v.y;
-			if (v.x > maxX) maxX = v.x;
-			if (v.y > maxY) maxY = v.y;
-		}
+		const points = this.clipBoundaryVertices.map((vertex) => new XYZ(
+			this.insertPoint.x + this.uVector.x * vertex.x + this.vVector.x * vertex.y,
+			this.insertPoint.y + this.uVector.y * vertex.x + this.vVector.y * vertex.y,
+			this.insertPoint.z + this.uVector.z * vertex.x + this.vVector.z * vertex.y,
+		));
 
-		const min: XYZ = new XYZ(minX + this.insertPoint.x, minY + this.insertPoint.y, this.insertPoint.z,);
-		const max: XYZ = new XYZ(maxX + this.insertPoint.x, maxY + this.insertPoint.y, this.insertPoint.z,);
-
-		return new BoundingBox(min, max);
+		return BoundingBox.FromPoints(points);
 	}
 
 	/** @internal */
@@ -140,7 +136,7 @@ export abstract class CadWipeoutBase extends Entity {
 		this._definition = this._definition?.clone() as ImageDefinition | null ?? null;
 	}
 
-	private imageDefinitionsOnRemove(sender: any, e: CollectionChangedEventArgs): void {
+	private imageDefinitionsOnRemove(sender: unknown, e: CollectionChangedEventArgs): void {
 		if (e.item === this._definition) {
 			this._definition = null;
 		}

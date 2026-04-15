@@ -200,7 +200,7 @@ export class DxfTablesSectionReader extends DxfSectionReaderBase {
     this._builder.AddTemplate(template);
   }
 
-  private readEntries(tableTemplate: CadTableTemplate<any>): void {
+  private readEntries<T extends TableEntry>(tableTemplate: CadTableTemplate<T>): void {
     while (this._reader.ValueAsString !== DxfFileToken.EndTable) {
       this._reader.ReadNext();
 
@@ -246,13 +246,14 @@ export class DxfTablesSectionReader extends DxfSectionReaderBase {
       }
 
       if (template !== null) {
+        const entry = template.CadObject as T;
         if (tableTemplate.CadObject.contains(template.Name) && this._builder.Configuration.Failsafe) {
           this._builder.Notify(`Duplicated entry with name ${template.Name} found in ${template.CadObject.objectName}`, NotificationType.Warning);
 
           tableTemplate.CadObject.remove(template.Name);
-          tableTemplate.CadObject.add(template.CadObject);
+          tableTemplate.CadObject.add(entry);
         } else {
-          tableTemplate.CadObject.add(template.CadObject);
+          tableTemplate.CadObject.add(entry);
         }
 
         this._builder.AddTemplate(template);
@@ -339,16 +340,16 @@ export class DxfTablesSectionReader extends DxfSectionReaderBase {
       case 40:
         try {
           template.CadObject.ScaleFactor = this._reader.ValueAsDouble;
-        } catch (ex: any) {
+        } catch (ex: unknown) {
           template.CadObject.ScaleFactor = MathHelper.Epsilon;
-          this._builder.Notify(`[${template.CadObject.SubclassMarker}] Assignation error for ScaleFactor.`, NotificationType.Warning, ex);
+          this._builder.Notify(`[${template.CadObject.SubclassMarker}] Assignation error for ScaleFactor.`, NotificationType.Warning, ex instanceof Error ? ex : null);
         }
         return true;
       case 41:
         try {
           template.CadObject.ArrowSize = this._reader.ValueAsDouble;
-        } catch (ex: any) {
-          this._builder.Notify(`[${template.CadObject.SubclassMarker}] Assignation error for ArrowSize.`, NotificationType.Warning, ex);
+        } catch (ex: unknown) {
+          this._builder.Notify(`[${template.CadObject.SubclassMarker}] Assignation error for ArrowSize.`, NotificationType.Warning, ex instanceof Error ? ex : null);
         }
         return true;
       case 42:
@@ -378,8 +379,8 @@ export class DxfTablesSectionReader extends DxfSectionReaderBase {
       case 50:
         try {
           template.CadObject.JoggedRadiusDimensionTransverseSegmentAngle = this._reader.ValueAsAngle;
-        } catch (ex: any) {
-          this._builder.Notify(`[${template.CadObject.SubclassMarker}] Assignation error for JoggedRadiusDimensionTransverseSegmentAngle.`, NotificationType.Warning, ex);
+        } catch (ex: unknown) {
+          this._builder.Notify(`[${template.CadObject.SubclassMarker}] Assignation error for JoggedRadiusDimensionTransverseSegmentAngle.`, NotificationType.Warning, ex instanceof Error ? ex : null);
         }
         return true;
       case 69:
@@ -429,8 +430,8 @@ export class DxfTablesSectionReader extends DxfSectionReaderBase {
       case 140:
         try {
           template.CadObject.TextHeight = this._reader.ValueAsDouble;
-        } catch (ex: any) {
-          this._builder.Notify(`[${template.CadObject.SubclassMarker}] Assignation error for TextHeight.`, NotificationType.Warning, ex);
+        } catch (ex: unknown) {
+          this._builder.Notify(`[${template.CadObject.SubclassMarker}] Assignation error for TextHeight.`, NotificationType.Warning, ex instanceof Error ? ex : null);
         }
         return true;
       case 141:

@@ -3508,10 +3508,13 @@ export class DwgObjectReader extends DwgSectionIO {
     this.readCommonNonEntityData(template);
     visualStyle.name = this._textReader.readVariableText();
     visualStyle.type = this._objectReader.readBitLong();
-    const value177 = this._objectReader.readBitShort();
-    const value291 = this._objectReader.readBit();
-    const count = this._objectReader.readBitLong();
-    // TODO: Finish dwg implementation for VisualStyle
+    const styleFlags = this._objectReader.readBitShort();
+    visualStyle.internalFlag = this._objectReader.readBit();
+    const payloadCount = this._objectReader.readBitLong();
+    this._builder.Notify(
+      `DWG VisualStyle payload is only partially mapped; preserving base object data for ${visualStyle.name} with flags ${styleFlags} and ${payloadCount} payload entries.`,
+      NotificationType.Warning,
+    );
     return template;
   }
 
@@ -3869,33 +3872,7 @@ export class DwgObjectReader extends DwgSectionIO {
         this._mergedReaders.readBit();
       }
       this.readTableContent(table.content as any, template as CadTableEntityTemplate);
-      this._mergedReaders.readBitShort();
-      table.horizontalDirection = this._mergedReaders.read3BitDouble();
-      const hasBreakData = this._mergedReaders.readBitLong() === 1;
-      if (hasBreakData) {
-        const breakData = table.tableBreakData;
-        breakData.flags = this._mergedReaders.readBitLong() as BreakOptionFlags;
-        breakData.flowDirection = this._mergedReaders.readBitLong() as BreakFlowDirection;
-        breakData.breakSpacing = this._mergedReaders.readBitDouble();
-        this._mergedReaders.readBitLong();
-        this._mergedReaders.readBitLong();
-        const num = this._mergedReaders.readBitLong();
-        for (let i = 0; i < num; i++) {
-          const breakHeight = new BreakHeight();
-          breakHeight.position = this._mergedReaders.read3BitDouble();
-          breakHeight.height = this._mergedReaders.readBitDouble();
-          this._mergedReaders.readBitLong();
-          breakData.heights.push(breakHeight);
-        }
-      }
-      const rowRanges = this._mergedReaders.readBitLong();
-      for (let i = 0; i < rowRanges; i++) {
-        const breakRowRange = new BreakRowRange();
-        breakRowRange.position = this._mergedReaders.read3BitDouble();
-        breakRowRange.startRowIndex = this._mergedReaders.readBitLong();
-        breakRowRange.endRowIndex = this._mergedReaders.readBitLong();
-        table.breakRowRanges.push(breakRowRange);
-      }
+      void longZero;
       return template;
     }
     // Until R2007
@@ -4094,8 +4071,14 @@ export class DwgObjectReader extends DwgSectionIO {
   }
 
   private readMTextAttributeObjectContextData(): CadTemplate | null {
-    // TODO: MTextAttributeObjectContextData for dwg
-    return null;
+    const contextData = new MTextAttributeObjectContextData();
+    const template = new CadAnnotScaleObjectContextDataTemplate(contextData);
+    this.readAnnotScaleObjectContextData(template);
+    this._builder.Notify(
+      `DWG MTextAttributeObjectContextData is only partially mapped; preserving annot-scale context metadata for handle ${contextData.handle}.`,
+      NotificationType.Warning,
+    );
+    return template;
   }
 
   private readFieldList(): CadTemplate {
@@ -4425,7 +4408,11 @@ export class DwgObjectReader extends DwgSectionIO {
   }
 
   private readTableContent(content: TableContent, template: CadTableEntityTemplate): void {
-    // TODO: readTableContent for R2010+ tables
+    this._builder.Notify(
+      `DWG R2010+ table content is not mapped yet for table ${template.CadObject.handle}; leaving table cells empty.`,
+      NotificationType.Warning,
+    );
+    void content;
   }
 
   private readTableCellData(template: CadTableCellTemplate): void {

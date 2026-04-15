@@ -60,8 +60,24 @@ export class CadMLeaderTemplate extends CadEntityTemplateT<MultiLeader> {
 			multiLeader.arrowhead = arrowHead;
 		}
 
-		//	TODO
-		for (const [handle, value] of this.ArrowheadHandles) {
+		const leaderLines = multiLeader.contextData.leaderRoots.flatMap((root) => root.lines);
+		for (const [handle, isDefault] of this.ArrowheadHandles) {
+			const arrowhead = builder.TryGetCadObject<BlockRecord>(handle);
+			if (arrowhead == null) {
+				continue;
+			}
+
+			if (isDefault) {
+				multiLeader.arrowhead ??= arrowhead;
+				continue;
+			}
+
+			const leaderLine = leaderLines.find((line) => line.arrowhead == null);
+			if (leaderLine != null) {
+				leaderLine.arrowhead = arrowhead;
+			} else {
+				multiLeader.arrowhead ??= arrowhead;
+			}
 		}
 
 		for (const blockAttribute of multiLeader.blockAttributes) {

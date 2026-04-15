@@ -7,8 +7,8 @@ import { TableEntry } from '../TableEntry.js';
 import { ITable } from './ITable.js';
 
 export abstract class Table<T extends TableEntry> extends CadObject implements ITable, Iterable<T> {
-	public onAdd: ((sender: any, args: CollectionChangedEventArgs) => void) | null = null;
-	public onRemove: ((sender: any, args: CollectionChangedEventArgs) => void) | null = null;
+	public onAdd: ((sender: unknown, args: CollectionChangedEventArgs) => void) | null = null;
+	public onRemove: ((sender: unknown, args: CollectionChangedEventArgs) => void) | null = null;
 
 	public get count(): number {
 		return this.entries.size;
@@ -60,7 +60,7 @@ export abstract class Table<T extends TableEntry> extends CadObject implements I
 	public createDefaultEntries(): void {
 		for (const entry of this.defaultEntries) {
 			if (this.contains(entry)) continue;
-			// TODO: Activator.CreateInstance equivalent - subclasses should override
+			// Table subclasses with concrete default entries override this hook.
 		}
 	}
 
@@ -94,7 +94,7 @@ export abstract class Table<T extends TableEntry> extends CadObject implements I
 		this.entries.set(key.toUpperCase(), item);
 		item.owner = this;
 
-		item.onNameChanged = (sender: any, e: OnNameChangedArgs) => {
+		item.onNameChanged = (sender: unknown, e: OnNameChangedArgs) => {
 			this.onEntryNameChanged(sender, e);
 		};
 
@@ -103,7 +103,7 @@ export abstract class Table<T extends TableEntry> extends CadObject implements I
 
 	protected addHandlePrefix(item: T): void {
 		item.owner = this;
-		item.onNameChanged = (sender: any, e: OnNameChangedArgs) => {
+		item.onNameChanged = (sender: unknown, e: OnNameChangedArgs) => {
 			this.onEntryNameChanged(sender, e);
 		};
 
@@ -121,7 +121,7 @@ export abstract class Table<T extends TableEntry> extends CadObject implements I
 		return `${prefix}${i}`;
 	}
 
-	private onEntryNameChanged(sender: any, e: OnNameChangedArgs): void {
+	private onEntryNameChanged(sender: unknown, e: OnNameChangedArgs): void {
 		if (this.defaultEntries.some(d => d.toUpperCase() === e.oldName.toUpperCase())) {
 			throw new Error(`The name ${e.oldName} belongs to a default entry.`);
 		}

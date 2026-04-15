@@ -29,8 +29,35 @@ import { UCSTable } from './Tables/Collections/UCSTable.js';
 import { ViewportEntityControl } from './Tables/Collections/ViewportEntityControl.js';
 import { ViewsTable } from './Tables/Collections/ViewsTable.js';
 import { VPortsTable } from './Tables/Collections/VPortsTable.js';
+import { IObservableCadCollection } from './IObservableCadCollection.js';
+import { ISeqendCollection } from './ISeqendColleciton.js';
 
 import { DxfClassCollection } from './Classes/DxfClassCollection.js';
+
+type BlockMarkerOwner = { blockEntity: CadObject; blockEnd: CadObject };
+type EntityCollectionOwner = { entities: Iterable<CadObject> & IObservableCadCollection<CadObject> };
+
+function isIterable(value: unknown): value is Iterable<unknown> {
+	return value != null && typeof value === 'object' && Symbol.iterator in value;
+}
+
+function isObservableCollection(value: unknown): value is IObservableCadCollection<CadObject> {
+	return value != null && typeof value === 'object' && 'onAdd' in value && 'onRemove' in value;
+}
+
+function isSeqendCollection(value: unknown): value is ISeqendCollection {
+	return value != null && typeof value === 'object' && 'onSeqendAdded' in value && 'onSeqendRemoved' in value && 'seqend' in value;
+}
+
+function hasBlockMarkers(value: unknown): value is BlockMarkerOwner {
+	return value != null && typeof value === 'object' &&
+		'blockEntity' in value && (value as { blockEntity?: unknown }).blockEntity instanceof CadObject &&
+		'blockEnd' in value && (value as { blockEnd?: unknown }).blockEnd instanceof CadObject;
+}
+
+function hasEntityCollection(value: unknown): value is EntityCollectionOwner {
+	return value != null && typeof value === 'object' && 'entities' in value && isObservableCollection((value as { entities?: unknown }).entities) && isIterable((value as { entities?: unknown }).entities);
+}
 
 export class CadDocument implements IHandledCadObject {
 	public appIds: AppIdsTable | null = null;
@@ -265,7 +292,7 @@ export class CadDocument implements IHandledCadObject {
 	}
 
 	/** @internal */
-	registerCollection(collection: any): void {
+	registerCollection(collection: unknown): void {
 		if (collection == null) {
 			return;
 		}
@@ -279,10 +306,8 @@ export class CadDocument implements IHandledCadObject {
 			}
 		}
 
-		if ('onAdd' in collection) {
+		if (isObservableCollection(collection)) {
 			collection.onAdd = this.onAdd.bind(this);
-		}
-		if ('onRemove' in collection) {
 			collection.onRemove = this.onRemove.bind(this);
 		}
 
@@ -296,15 +321,15 @@ export class CadDocument implements IHandledCadObject {
 		else if (collection instanceof ViewsTable) this.views = collection;
 		else if (collection instanceof VPortsTable) this.vPorts = collection;
 
-		if (typeof collection[Symbol.iterator] === 'function') {
-			for (const item of collection as Iterable<any>) {
+		if (isIterable(collection)) {
+			for (const item of collection) {
 				this.wireCollectionItem(item);
 			}
 		}
 	}
 
 	/** @internal */
-	unregisterCollection(collection: any): void {
+	unregisterCollection(collection: unknown): void {
 		if (collection == null) {
 			return;
 		}
@@ -323,10 +348,8 @@ export class CadDocument implements IHandledCadObject {
 			throw new Error(`The collection ${collection.constructor?.name ?? typeof collection} cannot be removed from a document.`);
 		}
 
-		if ('onAdd' in collection) {
+		if (isObservableCollection(collection)) {
 			collection.onAdd = null;
-		}
-		if ('onRemove' in collection) {
 			collection.onRemove = null;
 		}
 
@@ -334,21 +357,19 @@ export class CadDocument implements IHandledCadObject {
 			this.removeCadObject(collection);
 		}
 
-		if ('onSeqendAdded' in collection) {
+		if (isSeqendCollection(collection)) {
 			collection.onSeqendAdded = null;
-		}
-		if ('onSeqendRemoved' in collection) {
 			collection.onSeqendRemoved = null;
 		}
-		if ('seqend' in collection && collection.seqend instanceof CadObject) {
+		if (isSeqendCollection(collection) && collection.seqend instanceof CadObject) {
 			this.removeCadObject(collection.seqend);
 		}
 
-		if (typeof collection[Symbol.iterator] !== 'function') {
+		if (!isIterable(collection)) {
 			return;
 		}
 
-		for (const item of collection as Iterable<any>) {
+		for (const item of collection) {
 			if (item instanceof CadDictionary) {
 				this.unregisterCollection(item);
 			} else if (item instanceof CadObject) {
@@ -376,17 +397,17 @@ export class CadDocument implements IHandledCadObject {
 		cadObject.assignDocument(this);
 	}
 
-	private onAdd(sender: any, e: CollectionChangedEventArgs): void {
+	private onAdd(sender: unknown, e: CollectionChangedEventArgs): void {
 		this.wireCollectionItem(e.item);
 	}
 
-	private onRemove(sender: any, e: CollectionChangedEventArgs): void {
+	private onRemove(sender: unknown, e: CollectionChangedEventArgs): void {
 		this.unregisterBlockMarkers(e.item);
 		this.removeCadObject(e.item);
 	}
 
-	private registerBlockMarkers(item: any): void {
-		if (!item || !('blockEntity' in item) || !('blockEnd' in item)) {
+	private registerBlockMarkers(item: unknown): void {
+		if (!hasBlockMarkers(item)) {
 			return;
 		}
 
@@ -397,8 +418,8 @@ export class CadDocument implements IHandledCadObject {
 		}
 	}
 
-	private unregisterBlockMarkers(item: any): void {
-		if (!item || !('blockEntity' in item) || !('blockEnd' in item)) {
+	private unregisterBlockMarkers(item: unknown): void {
+		if (!hasBlockMarkers(item)) {
 			return;
 		}
 
@@ -427,7 +448,7 @@ export class CadDocument implements IHandledCadObject {
 		return { success: dictionary != null, dictionary };
 	}
 
-	private wireCollectionItem(item: any): void {
+	private wireCollectionItem(item: unknown): void {
 		if (item instanceof CadDictionary) {
 			this.registerCollection(item);
 			return;
@@ -441,24 +462,18 @@ export class CadDocument implements IHandledCadObject {
 		this.wireEntityCollection(item);
 	}
 
-	private wireEntityCollection(item: any): void {
-		if (!item || !('entities' in item) || !item.entities) {
+	private wireEntityCollection(item: unknown): void {
+		if (!hasEntityCollection(item)) {
 			return;
 		}
 
 		const entities = item.entities;
-		if ('onAdd' in (entities as object)) {
-			(entities as any).onAdd = this.onAdd.bind(this);
-		}
-		if ('onRemove' in (entities as object)) {
-			(entities as any).onRemove = this.onRemove.bind(this);
-		}
+		entities.onAdd = this.onAdd.bind(this);
+		entities.onRemove = this.onRemove.bind(this);
 
-		if (typeof entities[Symbol.iterator] === 'function') {
-			for (const entity of entities as Iterable<any>) {
-				if (entity instanceof CadObject && entity.document == null) {
-					this.addCadObject(entity);
-				}
+		for (const entity of entities) {
+			if (entity instanceof CadObject && entity.document == null) {
+				this.addCadObject(entity);
 			}
 		}
 	}
