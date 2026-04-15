@@ -1,4 +1,5 @@
 import { Entity } from './Entity.js';
+import { BoundingBox } from '../Math/BoundingBox.js';
 import { DxfFileToken } from '../DxfFileToken.js';
 import { DxfSubclassMarker } from '../DxfSubclassMarker.js';
 import { ObjectType } from '../Types/ObjectType.js';
@@ -47,22 +48,30 @@ export class Circle extends Entity {
 		// TODO: Transform operations not available
 	}
 
-	override getBoundingBox(): any {
+	override getBoundingBox(): BoundingBox {
 		const min: XYZ = new XYZ(this.center.x - this._radius, this.center.y - this._radius, this.center.z,);
 		const max: XYZ = new XYZ(this.center.x + this._radius, this.center.y + this._radius, this.center.z,);
-		return { min, max };
+		return new BoundingBox(min, max);
 	}
 
 	polarCoordinateRelativeToCenter(angle: number): XYZ {
-		// TODO: CurveExtensions.PolarCoordinate not available
-		return new XYZ(0, 0, 0);
+		return new XYZ(
+			this.center.x + this._radius * Math.cos(angle),
+			this.center.y + this._radius * Math.sin(angle),
+			this.center.z,
+		);
 	}
 
 	polygonalVertexes(precision: number): XYZ[] {
 		if (precision < 2) {
 			throw new Error('The arc precision must be equal or greater than two.');
 		}
-		// TODO: CurveExtensions.PolygonalVertexes not available
-		return [];
+
+		const vertexes: XYZ[] = [];
+		const step = (Math.PI * 2) / precision;
+		for (let index = 0; index < precision; index++) {
+			vertexes.push(this.polarCoordinateRelativeToCenter(step * index));
+		}
+		return vertexes;
 	}
 }

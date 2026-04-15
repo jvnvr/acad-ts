@@ -1,4 +1,5 @@
 import { Entity } from './Entity.js';
+import { BoundingBox } from '../Math/BoundingBox.js';
 import { DxfFileToken } from '../DxfFileToken.js';
 import { DxfSubclassMarker } from '../DxfSubclassMarker.js';
 import { ObjectType } from '../Types/ObjectType.js';
@@ -85,9 +86,9 @@ export class Ellipse extends Entity {
 		// TODO: Transform operations not available
 	}
 
-	override getBoundingBox(): any {
-		// TODO: PolygonalVertexes and BoundingBox.FromPoints not available
-		return null;
+	override getBoundingBox(): BoundingBox | null {
+		const points = this.polygonalVertexes(64);
+		return points.length > 0 ? BoundingBox.FromPoints(points) : null;
 	}
 
 	getEndVertices(): { start: XYZ; end: XYZ } {
@@ -97,12 +98,34 @@ export class Ellipse extends Entity {
 	}
 
 	polarCoordinateRelativeToCenter(angle: number): XYZ {
-		// TODO: CurveExtensions.PolarCoordinate not available
-		return new XYZ(0, 0, 0);
+		const minor = this.minorAxisEndpoint;
+		return new XYZ(
+			this.center.x + this.majorAxisEndPoint.x * Math.cos(angle) + minor.x * Math.sin(angle),
+			this.center.y + this.majorAxisEndPoint.y * Math.cos(angle) + minor.y * Math.sin(angle),
+			this.center.z + this.majorAxisEndPoint.z * Math.cos(angle) + minor.z * Math.sin(angle),
+		);
 	}
 
 	polygonalVertexes(precision: number): XYZ[] {
-		// TODO: CurveExtensions.PolygonalVertexes not available
-		return [];
+		if (precision < 2) {
+			throw new Error('The ellipse precision must be equal or greater than two.');
+		}
+
+		let start = this.startParameter;
+		let end = this.endParameter;
+		if (end < start) {
+			end += Math.PI * 2;
+		}
+
+		const stepCount = Math.max(2, precision);
+		const step = (end - start) / (stepCount - 1);
+		const vertexes: XYZ[] = [];
+		for (let index = 0; index < stepCount; index++) {
+			vertexes.push(this.polarCoordinateRelativeToCenter(start + step * index));
+		}
+
+		vertexes[0] = this.polarCoordinateRelativeToCenter(this.startParameter);
+		vertexes[vertexes.length - 1] = this.polarCoordinateRelativeToCenter(this.endParameter);
+		return vertexes;
 	}
 }

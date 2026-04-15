@@ -1,4 +1,5 @@
 import { Entity } from './Entity.js';
+import { BoundingBox } from '../Math/BoundingBox.js';
 import { CadObject } from '../CadObject.js';
 import { DxfFileToken } from '../DxfFileToken.js';
 import { DxfSubclassMarker } from '../DxfSubclassMarker.js';
@@ -110,9 +111,14 @@ export class Spline extends Entity {
 		return clone;
 	}
 
-	override getBoundingBox(): any {
-		// TODO: BoundingBox.FromPoints / PolygonalVertexes not available
-		return null;
+	override getBoundingBox(): BoundingBox | null {
+		const polygon = this.tryPolygonalVertexes(64);
+		if (polygon.success && polygon.points.length > 0) {
+			return BoundingBox.FromPoints(polygon.points);
+		}
+
+		const points = this.controlPoints.length > 0 ? this.controlPoints : this.fitPoints;
+		return points.length > 0 ? BoundingBox.FromPoints(points) : null;
 	}
 
 	pointOnSpline(t: number): XYZ {

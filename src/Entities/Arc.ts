@@ -1,4 +1,5 @@
 import { Circle } from './Circle.js';
+import { BoundingBox } from '../Math/BoundingBox.js';
 import { DxfFileToken } from '../DxfFileToken.js';
 import { DxfSubclassMarker } from '../DxfSubclassMarker.js';
 import { ObjectType } from '../Types/ObjectType.js';
@@ -109,14 +110,14 @@ export class Arc extends Circle {
 		// TODO: Transform operations not available
 	}
 
-	override getBoundingBox(): any {
-		// TODO: PolygonalVertexes/BoundingBox.FromPoints not available
-		return null;
+	override getBoundingBox(): BoundingBox | null {
+		const points = this.polygonalVertexes(64);
+		return points.length > 0 ? BoundingBox.FromPoints(points) : null;
 	}
 
 	getEndVertices(): { start: XYZ; end: XYZ } {
-		const start: XYZ = new XYZ(this.center.x + this.radius * Math.cos(this.startAngle), this.center.y + this.radius * Math.sin(this.startAngle), 0,);
-		const end: XYZ = new XYZ(this.center.x + this.radius * Math.cos(this.endAngle), this.center.y + this.radius * Math.sin(this.endAngle), 0,);
+		const start = this.polarCoordinateRelativeToCenter(this.startAngle);
+		const end = this.polarCoordinateRelativeToCenter(this.endAngle);
 		// TODO: Matrix4.GetArbitraryAxis transform not applied
 		return { start, end };
 	}
@@ -125,7 +126,22 @@ export class Arc extends Circle {
 		if (precision < 2) {
 			throw new Error('The arc precision must be equal or greater than two.');
 		}
-		// TODO: CurveExtensions.PolygonalVertexes not available
-		return [];
+
+		let start = this.startAngle;
+		let end = this.endAngle;
+		if (end < start) {
+			end += Math.PI * 2;
+		}
+
+		const stepCount = Math.max(2, precision);
+		const step = (end - start) / (stepCount - 1);
+		const vertexes: XYZ[] = [];
+		for (let index = 0; index < stepCount; index++) {
+			vertexes.push(this.polarCoordinateRelativeToCenter(start + step * index));
+		}
+
+		vertexes[0] = this.polarCoordinateRelativeToCenter(this.startAngle);
+		vertexes[vertexes.length - 1] = this.polarCoordinateRelativeToCenter(this.endAngle);
+		return vertexes;
 	}
 }
