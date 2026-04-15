@@ -34,7 +34,7 @@ export class Solid extends Entity {
 		// TODO: transform.ApplyTransform not available
 	}
 
-	override getBoundingBox(): any {
+	override getBoundingBox(): BoundingBox {
 		return BoundingBox.FromPoints([
 			this.firstCorner,
 			this.secondCorner,

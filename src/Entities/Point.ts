@@ -37,7 +37,7 @@ export class Point extends Entity {
 		// TODO: transform.ApplyTransform not available
 	}
 
-	override getBoundingBox(): any {
+	override getBoundingBox(): BoundingBox {
 		return BoundingBox.FromPoints([this.location]);
 	}
 }

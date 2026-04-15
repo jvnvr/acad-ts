@@ -1,4 +1,5 @@
 import { Entity } from './Entity.js';
+import { BoundingBox } from '../Math/BoundingBox.js';
 import { DxfFileToken } from '../DxfFileToken.js';
 import { DxfSubclassMarker } from '../DxfSubclassMarker.js';
 import { VertexFlags } from './VertexFlags.js';
@@ -42,8 +43,8 @@ export abstract class Vertex extends Entity implements IVertex {
 		// TODO: transform.ApplyTransform not available
 	}
 
-	override getBoundingBox(): any {
-		return null;
+	override getBoundingBox(): BoundingBox {
+		return BoundingBox.FromPoints([this.location]);
 	}
 
 	override toString(): string {

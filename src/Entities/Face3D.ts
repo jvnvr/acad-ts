@@ -33,7 +33,7 @@ export class Face3D extends Entity {
 		super();
 	}
 
-	override getBoundingBox(): any {
+	override getBoundingBox(): BoundingBox {
 		return BoundingBox.FromPoints([
 			this.firstCorner,
 			this.secondCorner,

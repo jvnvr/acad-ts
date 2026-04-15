@@ -1,4 +1,5 @@
 import { Entity } from './Entity.js';
+import { BoundingBox } from '../Math/BoundingBox.js';
 import { DxfFileToken } from '../DxfFileToken.js';
 import { DxfSubclassMarker } from '../DxfSubclassMarker.js';
 import { ObjectType } from '../Types/ObjectType.js';
@@ -39,17 +40,7 @@ export class Line extends Entity {
 		// TODO: transform.ApplyTransform not available
 	}
 
-	override getBoundingBox(): any {
-		const min = new XYZ(
-			Math.min(this.startPoint.x, this.endPoint.x),
-			Math.min(this.startPoint.y, this.endPoint.y),
-			Math.min(this.startPoint.z, this.endPoint.z),
-		);
-		const max = new XYZ(
-			Math.max(this.startPoint.x, this.endPoint.x),
-			Math.max(this.startPoint.y, this.endPoint.y),
-			Math.max(this.startPoint.z, this.endPoint.z),
-		);
-		return { min, max };
+	override getBoundingBox(): BoundingBox {
+		return BoundingBox.FromPoints([this.startPoint, this.endPoint]);
 	}
 }

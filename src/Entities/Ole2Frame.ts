@@ -37,7 +37,7 @@ export class Ole2Frame extends Entity {
 		// TODO: transform operations not available
 	}
 
-	override getBoundingBox(): any {
+	override getBoundingBox(): BoundingBox {
 		return BoundingBox.FromPoints([this.upperLeftCorner, this.lowerRightCorner]);
 	}
 }

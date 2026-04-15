@@ -83,7 +83,7 @@ export class Leader extends Entity {
 		return clone;
 	}
 
-	override getBoundingBox(): any {
+	override getBoundingBox(): BoundingBox {
 		return BoundingBox.FromPoints(this.vertices);
 	}
 
