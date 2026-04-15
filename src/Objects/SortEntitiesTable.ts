@@ -1,14 +1,16 @@
 import { NonGraphicalObject } from './NonGraphicalObject.js';
 import { CadObject } from '../CadObject.js';
+import { Entity } from '../Entities/Entity.js';
 import { DxfFileToken } from '../DxfFileToken.js';
 import { DxfSubclassMarker } from '../DxfSubclassMarker.js';
 import { ObjectType } from '../Types/ObjectType.js';
+import type { BlockRecord } from '../Tables/BlockRecord.js';
 
 export class Sorter {
 	sortHandle: number = 0;
-	entity: any = null;
+	entity: Entity;
 
-	constructor(entity: any, handle: number) {
+	constructor(entity: Entity, handle: number) {
 		this.entity = entity;
 		this.sortHandle = handle;
 	}
@@ -25,7 +27,7 @@ export class Sorter {
 }
 
 export class SortEntitiesTable extends NonGraphicalObject implements Iterable<Sorter> {
-	blockOwner: any = null;
+	blockOwner: BlockRecord | null = null;
 
 	override get objectName(): string { return DxfFileToken.ObjectSortEntsTable; }
 	override get objectType(): ObjectType { return ObjectType.UNLISTED; }
@@ -35,14 +37,14 @@ export class SortEntitiesTable extends NonGraphicalObject implements Iterable<So
 
 	private _sorters: Sorter[] = [];
 
-	constructor(owner?: any) {
+	constructor(owner?: BlockRecord) {
 		super(SortEntitiesTable.DictionaryEntryName);
 		if (owner) {
 			this.blockOwner = owner;
 		}
 	}
 
-	add(entity: any, sorterHandle: number): void {
+	add(entity: Entity, sorterHandle: number): void {
 		this._sorters.push(new Sorter(entity, sorterHandle));
 	}
 
@@ -56,7 +58,7 @@ export class SortEntitiesTable extends NonGraphicalObject implements Iterable<So
 		return clone;
 	}
 
-	getSorterHandle(entity: any): number {
+	getSorterHandle(entity: Entity): number {
 		const sorter = this._sorters.find(s => s.entity === entity);
 		if (sorter) {
 			return sorter.sortHandle;
@@ -64,7 +66,7 @@ export class SortEntitiesTable extends NonGraphicalObject implements Iterable<So
 		return entity.handle;
 	}
 
-	remove(entity: any): boolean {
+	remove(entity: Entity): boolean {
 		const idx = this._sorters.findIndex(s => s.entity === entity);
 		if (idx < 0) return false;
 		this._sorters.splice(idx, 1);

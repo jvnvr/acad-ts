@@ -4,6 +4,7 @@ import { CadDocument } from '../CadDocument.js';
 import { DxfFileToken } from '../DxfFileToken.js';
 import { DxfSubclassMarker } from '../DxfSubclassMarker.js';
 import { ObjectType } from '../Types/ObjectType.js';
+import { AppId } from '../Tables/AppId.js';
 import { DimensionStyle } from '../Tables/DimensionStyle.js';
 import { BlockRecord } from '../Tables/BlockRecord.js';
 import { DimensionType } from './DimensionType.js';
@@ -41,7 +42,11 @@ export abstract class Dimension extends Entity {
 	flipArrow2: boolean = false;
 
 	get hasStyleOverride(): boolean {
-		// TODO: ExtendedData access not available
+		for (const appName of this.extendedData.getExtendedDataByName().keys()) {
+			if (appName === AppId.DefaultName.toUpperCase() || appName.startsWith(`${AppId.DefaultName.toUpperCase()}_DSTYLE`)) {
+				return true;
+			}
+		}
 		return false;
 	}
 
@@ -156,7 +161,7 @@ export abstract class Dimension extends Entity {
 		this._block = CadObject.updateCollection(this._block!, doc.blockRecords);
 
 		if (this._block != null) {
-			(this._block as any).name = this.generateBlockName();
+			this._block.name = this.generateBlockName();
 		}
 
 		this._block = CadObject.updateCollection(this._block!, doc.blockRecords);
@@ -172,14 +177,14 @@ export abstract class Dimension extends Entity {
 	protected createBlock(): void {
 		if (this._block == null) {
 			this._block = new BlockRecord(this.generateBlockName());
-			(this._block as any).isAnonymous = true;
+			this._block.isAnonymous = true;
 		}
 
 		if (this.document != null) {
 			this._block = CadObject.updateCollection(this._block, this.document.blockRecords);
 		}
 
-		(this._block as any).entities?.clear?.();
+		this._block.entities.clear();
 	}
 
 	protected createDefinitionPoint(location: XYZ): any {

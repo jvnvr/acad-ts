@@ -2,17 +2,19 @@ import { DxfFileToken } from '../DxfFileToken.js';
 import { DxfSubclassMarker } from '../DxfSubclassMarker.js';
 import { ObjectType } from '../Types/ObjectType.js';
 import { BlockTypeFlags } from './BlockTypeFlags.js';
+import type { BoundingBox } from '../Math/BoundingBox.js';
 import { Entity } from '../Entities/Entity.js';
 import { CadObject } from '../CadObject.js';
 import { XYZ } from '../Math/XYZ.js';
+import type { BlockRecord } from '../Tables/BlockRecord.js';
 
 export const XYZ_Zero: XYZ = new XYZ(0, 0, 0);
 
 export class Block extends Entity {
 	public basePoint: XYZ = XYZ_Zero;
 
-	public get blockOwner(): any /* BlockRecord */ {
-		return this.owner;
+	public get blockOwner(): BlockRecord | null {
+		return this.owner as BlockRecord | null;
 	}
 
 	public comments: string | null = null;
@@ -44,7 +46,7 @@ export class Block extends Entity {
 
 	public xRefPath: string | null = null;
 
-	public constructor(record?: any /* BlockRecord */) {
+	public constructor(record?: BlockRecord) {
 		super();
 		if (record) {
 			this.owner = record;
@@ -61,7 +63,7 @@ export class Block extends Entity {
 		// TODO: apply block transform when block geometry support is implemented
 	}
 
-	public override getBoundingBox(): any {
+	public override getBoundingBox(): BoundingBox | null {
 		return null;
 	}
 }

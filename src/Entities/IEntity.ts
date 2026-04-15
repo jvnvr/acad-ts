@@ -2,6 +2,7 @@ import { IHandledCadObject } from '../IHandledCadObject.js';
 import { IGeometricEntity } from './IGeometricEntity.js';
 import { Color } from '../Color.js';
 import { CadDocument } from '../CadDocument.js';
+import type { Material } from '../Objects/Material.js';
 import { Layer } from '../Tables/Layer.js';
 import { LineType } from '../Tables/LineType.js';
 import { LineWeightType } from '../Types/LineWeightType.js';
@@ -15,7 +16,7 @@ export interface IEntity extends IHandledCadObject, IGeometricEntity {
 	lineType: LineType;
 	lineTypeScale: number;
 	lineWeight: LineWeightType;
-	material: any; // Material
+	material: Material | null;
 	transparency: Transparency;
 	getActiveColor(): Color;
 	getActiveLineType(): LineType;

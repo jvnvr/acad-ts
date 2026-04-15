@@ -8,7 +8,10 @@ import { LineWeightType } from '../Types/LineWeightType.js';
 import { Transparency } from '../Transparency.js';
 import { DxfSubclassMarker } from '../DxfSubclassMarker.js';
 import { CollectionChangedEventArgs } from '../CollectionChangedEventArgs.js';
+import type { BoundingBox } from '../Math/BoundingBox.js';
 import type { BlockRecord } from '../Tables/BlockRecord.js';
+import type { BookColor } from '../Objects/BookColor.js';
+import type { Material } from '../Objects/Material.js';
 import { XYZ } from '../Math/XYZ.js';
 import { XY } from '../Math/XY.js';
 
@@ -17,7 +20,7 @@ function isBlockRecordOwner(value: unknown): value is BlockRecord {
 }
 
 export abstract class Entity extends CadObject implements IEntity {
-	bookColor: any /* BookColor */ = null;
+	bookColor: BookColor | null = null;
 
 	color: Color = Color.ByLayer;
 
@@ -47,7 +50,7 @@ export abstract class Entity extends CadObject implements IEntity {
 
 	lineWeight: LineWeightType = LineWeightType.ByLayer;
 
-	material: any /* Material */ = null;
+	material: Material | null = null;
 
 	override get subclassMarker(): string {
 		return DxfSubclassMarker.Entity;
@@ -55,7 +58,7 @@ export abstract class Entity extends CadObject implements IEntity {
 
 	transparency: Transparency = Transparency.ByLayer;
 
-	private _bookColor: any /* BookColor */ = null;
+	private _bookColor: BookColor | null = null;
 	private _layer: Layer = Layer.Default;
 	private _lineType: LineType = LineType.ByLayer;
 
@@ -84,7 +87,7 @@ export abstract class Entity extends CadObject implements IEntity {
 
 		clone._layer = this.layer.clone() as Layer;
 		clone._lineType = this.lineType.clone() as LineType;
-		clone.material = this.material?.clone?.() ?? null;
+		clone.material = this.material?.clone?.() as Material | null ?? null;
 
 		return clone;
 	}
@@ -128,7 +131,7 @@ export abstract class Entity extends CadObject implements IEntity {
 		}
 	}
 
-	abstract getBoundingBox(): any /* BoundingBox */;
+	abstract getBoundingBox(): BoundingBox | null;
 
 	matchProperties(entity: IEntity): void {
 		if (entity == null) {
@@ -138,7 +141,7 @@ export abstract class Entity extends CadObject implements IEntity {
 		if (entity.handle === 0 || this.document !== entity.document) {
 			this.layer = entity.layer.clone() as Layer;
 			this.lineType = entity.lineType.clone() as LineType;
-			this.material = entity.material?.clone?.() ?? null;
+			this.material = entity.material?.clone?.() as Material | null ?? null;
 		} else {
 			this.layer = entity.layer;
 			this.lineType = entity.lineType;

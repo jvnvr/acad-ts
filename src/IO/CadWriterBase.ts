@@ -39,7 +39,7 @@ export abstract class CadWriterBase<T extends CadWriterConfiguration, TStream = 
 
 		if (this.Configuration.UpdateDimensionsInBlocks) {
 			for (const item of this._document.blockRecords) {
-				if (item.Name.toLowerCase() === BlockRecord.ModelSpaceName.toLowerCase()) {
+				if (item.name.toLowerCase() === BlockRecord.ModelSpaceName.toLowerCase()) {
 					continue;
 				}
 				this.updateDimensions(item);

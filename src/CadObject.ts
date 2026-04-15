@@ -1,10 +1,15 @@
 import { IHandledCadObject } from './IHandledCadObject.js';
 import { ObjectType } from './Types/ObjectType.js';
+import type { CadDocument } from './CadDocument.js';
 import type { CadDictionary } from './Objects/CadDictionary.js';
 import { ExtendedDataDictionary } from './XData/ExtendedDataDictionary.js';
 
+interface CadObjectTable<T extends CadObject> {
+	tryAdd(entry: T): T;
+}
+
 export abstract class CadObject implements IHandledCadObject {
-	public document: /* CadDocument */ any | null = null;
+	public document: CadDocument | null = null;
 	public extendedData!: ExtendedDataDictionary;
 	public handle: number = 0;
 	public get hasDynamicSubclass(): boolean { return false; }
@@ -86,7 +91,7 @@ export abstract class CadObject implements IHandledCadObject {
 	}
 
 	/** @internal */
-	assignDocument(doc: any): void {
+	assignDocument(doc: CadDocument): void {
 		this.document = doc;
 		if (this.xDictionary != null) {
 			doc.registerCollection(this.xDictionary);
@@ -117,16 +122,16 @@ export abstract class CadObject implements IHandledCadObject {
 		this._reactors = [];
 	}
 
-	protected static updateCollection<T extends CadObject>(entry: T | null, table: any): T | null {
+	protected static updateCollection<T extends CadObject>(entry: T | null, table: CadObjectTable<T> | null): T | null {
 		if (table == null || entry == null) return entry;
 		return table.tryAdd(entry);
 	}
 
-	public static updateCollectionStatic<T extends CadObject>(entry: T | null, table: any): T | null {
+	public static updateCollectionStatic<T extends CadObject>(entry: T | null, table: CadObjectTable<T> | null): T | null {
 		return CadObject.updateCollection(entry, table);
 	}
 
-	protected updateCollection<T extends CadObject>(entry: T | null, table: any): T | null {
+	protected updateCollection<T extends CadObject>(entry: T | null, table: CadObjectTable<T> | null): T | null {
 		return CadObject.updateCollection(entry, table);
 	}
 }

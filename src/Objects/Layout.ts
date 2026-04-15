@@ -7,16 +7,18 @@ import { LayoutFlags } from './LayoutFlags.js';
 import { Viewport } from '../Entities/Viewport.js';
 import { XYZ } from '../Math/XYZ.js';
 import { XY } from '../Math/XY.js';
+import { UCS } from '../Tables/UCS.js';
+import type { BlockRecord } from '../Tables/BlockRecord.js';
 
 export class Layout extends PlotSettings {
-	private _blockRecord: any = null;
-	private _lastViewport: any = null;
+	private _blockRecord: BlockRecord | null = null;
+	private _lastViewport: Viewport | null = null;
 
-	get associatedBlock(): any {
+	get associatedBlock(): BlockRecord | null {
 		return this._blockRecord;
 	}
 
-	set associatedBlock(value: any) {
+	set associatedBlock(value: BlockRecord) {
 		if (value == null) {
 			throw new Error('value cannot be null');
 		}
@@ -24,7 +26,7 @@ export class Layout extends PlotSettings {
 		this._blockRecord.layout = this;
 	}
 
-	baseUCS: any = null;
+	baseUCS: UCS | null = null;
 	elevation: number = 0.0;
 	insertionBasePoint: XYZ = new XYZ(0, 0, 0);
 
@@ -35,11 +37,11 @@ export class Layout extends PlotSettings {
 		return this.isPaperSpace;
 	}
 
-	get lastActiveViewport(): any {
+	get lastActiveViewport(): Viewport | null {
 		return this._lastViewport;
 	}
 
-	set lastActiveViewport(value: any) {
+	set lastActiveViewport(value: Viewport | null) {
 		this._lastViewport = value;
 	}
 
@@ -57,10 +59,10 @@ export class Layout extends PlotSettings {
 	override get subclassMarker(): string { return DxfSubclassMarker.Layout; }
 
 	tabOrder: number = 0;
-	ucs: any = null;
+	ucs: UCS | null = null;
 	ucsOrthographicType: number = 0;
 
-	get viewports(): any[] | null {
+	get viewports(): Viewport[] | null {
 		return this.associatedBlock?.viewports ?? null;
 	}
 
@@ -78,7 +80,7 @@ export class Layout extends PlotSettings {
 		}
 	}
 
-	addViewport(viewport: any): void {
+	addViewport(viewport: Viewport): void {
 		this.associatedBlock?.entities?.add(viewport);
 	}
 

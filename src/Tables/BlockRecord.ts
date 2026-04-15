@@ -16,6 +16,8 @@ import { Layout } from '../Objects/Layout.js';
 import { SortEntitiesTable } from '../Objects/SortEntitiesTable.js';
 import { ObjectType } from '../Types/ObjectType.js';
 import { UnitsType } from '../Types/Units/UnitsType.js';
+import { ExtendedDataHandle } from '../XData/ExtendedDataHandle.js';
+import { AppId } from './AppId.js';
 import { TableEntry } from './TableEntry.js';
 
 export class BlockRecord extends TableEntry {
@@ -124,8 +126,14 @@ export class BlockRecord extends TableEntry {
 	}
 
 	public get source(): BlockRecord | null {
-		// TODO: Implement when ExtendedData resolution is available
-		return null;
+		const data = this.extendedData.getExtendedDataByName().get(AppId.BlockRepBTag.toUpperCase());
+		const handle = data?.records.find((record): record is ExtendedDataHandle => record instanceof ExtendedDataHandle) ?? null;
+		if (handle == null || this.document == null) {
+			return null;
+		}
+
+		const source = handle.resolveReference(this.document);
+		return source instanceof BlockRecord && source !== this ? source : null;
 	}
 
 	public override get subclassMarker(): string {

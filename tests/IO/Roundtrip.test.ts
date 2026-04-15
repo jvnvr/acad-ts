@@ -9,11 +9,13 @@ import { DwgReader } from '../../src/IO/DWG/DwgReader.js';
 import { DwgWriter } from '../../src/IO/DWG/DwgWriter.js';
 import { ACadVersion } from '../../src/ACadVersion.js';
 import { CadDocument } from '../../src/CadDocument.js';
+import { Dimension } from '../../src/Entities/Dimension.js';
 import { Mesh } from '../../src/Entities/Mesh.js';
 import { PdfUnderlay } from '../../src/Entities/PdfUnderlay.js';
 import { RasterImage } from '../../src/Entities/RasterImage.js';
 import { Wipeout } from '../../src/Entities/Wipeout.js';
 import { TableEntity } from '../../src/Entities/TableEntity.js';
+import { BlockRepresentationData } from '../../src/Objects/BlockRepresentationData.js';
 import { TableStyle } from '../../src/Objects/TableStyle.js';
 import { Layout } from '../../src/Objects/Layout.js';
 
@@ -145,6 +147,37 @@ describe('Roundtrip Tests', () => {
 
       expect(tables).toHaveLength(2);
       expect(contentCount).toBeGreaterThan(0);
+    });
+
+    it('resolves AC1018 dynamic block sources before roundtrip', () => {
+      const sample = dwgFiles.find(f => f.fileName === 'sample_AC1018.dwg');
+      expect(sample).toBeDefined();
+
+      const data = readFileAsArrayBuffer(sample!.path);
+      const doc = new DwgReader(data).Read();
+      const sourceNames = [...doc.blockRecords]
+        .map(record => record.source?.name ?? null)
+        .filter((name): name is string => name !== null)
+        .sort();
+      const blockRepresentationData = [...(doc as any)._cadObjects.values()]
+        .filter((cadObject): cadObject is BlockRepresentationData => cadObject instanceof BlockRepresentationData);
+
+      expect(sourceNames).toEqual(['my-dynamic-block', 'my-dynamic-block']);
+      expect(blockRepresentationData).toHaveLength(2);
+      expect(blockRepresentationData.every(entry => entry.block?.name === 'my-dynamic-block')).toBe(true);
+    });
+
+    it('detects AC1018 dimension style overrides before roundtrip', () => {
+      const sample = dwgFiles.find(f => f.fileName === 'sample_AC1018.dwg');
+      expect(sample).toBeDefined();
+
+      const data = readFileAsArrayBuffer(sample!.path);
+      const doc = new DwgReader(data).Read();
+      const dimensions = [...doc.entities].filter((entity): entity is Dimension => entity instanceof Dimension);
+      const overrides = dimensions.filter(dimension => dimension.hasStyleOverride);
+
+      expect(overrides).toHaveLength(3);
+      expect(overrides.every(dimension => dimension.extendedData.size > 0)).toBe(true);
     });
 
     describe.each(dwgFiles.map(f => [f.fileName, f]))('%s', (_name, test) => {

@@ -1,10 +1,11 @@
 import { CadObject } from '../CadObject.js';
+import type { CadDocument } from '../CadDocument.js';
 import type { AppId } from '../Tables/AppId.js';
 import { ExtendedData } from './ExtendedData.js';
 import { ExtendedDataRecord } from './ExtendedDataRecord.js';
 
 export class ExtendedDataDictionary implements Iterable<[AppId, ExtendedData]> {
-	public get document(): any /* CadDocument */ | null {
+	public get document(): CadDocument | null {
 		return this.owner?.document ?? null;
 	}
 
@@ -78,11 +79,11 @@ export class ExtendedDataDictionary implements Iterable<[AppId, ExtendedData]> {
 
 	public get size(): number { return this._data.size; }
 
-  entries(): IterableIterator<[any, any]> { return this._data.entries(); }
+	entries(): IterableIterator<[AppId, ExtendedData]> { return this._data.entries(); }
 
-  add(key: any, value: any): void { this._data.set(key, value); }
+	add(key: AppId, value: ExtendedData): void { this._data.set(key, value); }
 
-  set(key: any, value: any): void { this._data.set(key, value); }
+	set(key: AppId, value: ExtendedData): void { this._data.set(key, value); }
 
   [Symbol.iterator](): Iterator<[AppId, ExtendedData]> {
 		return this._data.entries();

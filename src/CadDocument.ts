@@ -6,12 +6,19 @@ import { CollectionChangedEventArgs } from './CollectionChangedEventArgs.js';
 import { CadHeader } from './Header/CadHeader.js';
 import { CadDictionary } from './Objects/CadDictionary.js';
 import { ColorCollection } from './Objects/Collections/ColorCollection.js';
+import { DictionaryVariableCollection } from './Objects/Collections/DictionaryVariableCollection.js';
 import { GroupCollection } from './Objects/Collections/GroupCollection.js';
+import { ImageDefinitionCollection } from './Objects/Collections/ImageDefinitionCollection.js';
 import { LayoutCollection } from './Objects/Collections/LayoutCollection.js';
 import { MaterialCollection } from './Objects/Collections/MaterialCollection.js';
+import { MLeaderStyleCollection } from './Objects/Collections/MLeaderStyleCollection.js';
 import { MLineStyleCollection } from './Objects/Collections/MLineStyleCollection.js';
+import { PdfDefinitionCollection } from './Objects/Collections/PdfDefinitionCollection.js';
+import { ScaleCollection } from './Objects/Collections/ScaleCollection.js';
+import { TableStyleCollection } from './Objects/Collections/TableStyleCollection.js';
 import { RasterImage } from './Entities/RasterImage.js';
 import { ImageDefinitionReactor } from './Objects/ImageDefinitionReactor.js';
+import { BlockRecord } from './Tables/BlockRecord.js';
 import { AppIdsTable } from './Tables/Collections/AppIdsTable.js';
 import { BlockRecordsTable } from './Tables/Collections/BlockRecordsTable.js';
 import { DimensionStylesTable } from './Tables/Collections/DimensionStylesTable.js';
@@ -19,51 +26,56 @@ import { LayersTable } from './Tables/Collections/LayersTable.js';
 import { LineTypesTable } from './Tables/Collections/LineTypesTable.js';
 import { TextStylesTable } from './Tables/Collections/TextStylesTable.js';
 import { UCSTable } from './Tables/Collections/UCSTable.js';
+import { ViewportEntityControl } from './Tables/Collections/ViewportEntityControl.js';
 import { ViewsTable } from './Tables/Collections/ViewsTable.js';
 import { VPortsTable } from './Tables/Collections/VPortsTable.js';
 
 import { DxfClassCollection } from './Classes/DxfClassCollection.js';
 
 export class CadDocument implements IHandledCadObject {
-	public appIds: any | null = null; // AppIdsTable
-	public blockRecords: any | null = null; // BlockRecordsTable
-	public classes: any = null; // DxfClassCollection
-	public colors: any | null = null; // ColorCollection
-	public dictionaryVariables: any | null = null; // DictionaryVariableCollection
-	public dimensionStyles: any | null = null; // DimensionStylesTable
-	public get entities(): any { return this.modelSpace?.entities; }
-	public groups: any | null = null; // GroupCollection
+	public appIds: AppIdsTable | null = null;
+	public blockRecords: BlockRecordsTable | null = null;
+	public classes: DxfClassCollection | null = null;
+	public colors: ColorCollection | null = null;
+	public dictionaryVariables: DictionaryVariableCollection | null = null;
+	public dimensionStyles: DimensionStylesTable | null = null;
+	public get entities(): BlockRecord['entities'] | null { return this.modelSpace?.entities ?? null; }
+	public groups: GroupCollection | null = null;
 	public get handle(): number { return 0; }
-	public header: any | null = null; // CadHeader
-	public imageDefinitions: any | null = null; // ImageDefinitionCollection
-	public layers: any | null = null; // LayersTable
-	public layouts: any | null = null; // LayoutCollection
-	public lineTypes: any | null = null; // LineTypesTable
-	public materials: any | null = null; // MaterialCollection
-	public mLeaderStyles: any | null = null; // MLeaderStyleCollection
-	public mLineStyles: any | null = null; // MLineStyleCollection
-	public get modelSpace(): any { return this.blockRecords?.tryGetValue("*Model_Space"); }
-	public get paperSpace(): any { return this.blockRecords?.tryGetValue("*Paper_Space"); }
-	public pdfDefinitions: any | null = null; // PdfDefinitionCollection
-	public get rootDictionary(): any | null { return this._rootDictionary; }
-	public set rootDictionary(value: any) {
+	public header: CadHeader | null = null;
+	public imageDefinitions: ImageDefinitionCollection | null = null;
+	public layers: LayersTable | null = null;
+	public layouts: LayoutCollection | null = null;
+	public lineTypes: LineTypesTable | null = null;
+	public materials: MaterialCollection | null = null;
+	public mLeaderStyles: MLeaderStyleCollection | null = null;
+	public mLineStyles: MLineStyleCollection | null = null;
+	public get modelSpace(): BlockRecord | null { return this.blockRecords?.tryGetValue(BlockRecord.ModelSpaceName) ?? null; }
+	public get paperSpace(): BlockRecord | null { return this.blockRecords?.tryGetValue(BlockRecord.PaperSpaceName) ?? null; }
+	public pdfDefinitions: PdfDefinitionCollection | null = null;
+	public get rootDictionary(): CadDictionary | null { return this._rootDictionary; }
+	public set rootDictionary(value: CadDictionary | null) {
+		if (value == null) {
+			this._rootDictionary = null;
+			return;
+		}
 		this._rootDictionary = value;
 		this._rootDictionary.owner = this;
 		this.registerCollection(this._rootDictionary);
 	}
-	public scales: any | null = null; // ScaleCollection
+	public scales: ScaleCollection | null = null;
 	public summaryInfo: CadSummaryInfo | null = null;
-	public tableStyles: any | null = null; // TableStyleCollection
-	public textStyles: any | null = null; // TextStylesTable
-	public uCSs: any | null = null; // UCSTable
-	public views: any | null = null; // ViewsTable
-	public vPorts: any | null = null; // VPortsTable
+	public tableStyles: TableStyleCollection | null = null;
+	public textStyles: TextStylesTable | null = null;
+	public uCSs: UCSTable | null = null;
+	public views: ViewsTable | null = null;
+	public vPorts: VPortsTable | null = null;
 
 	/** @internal */
-	vEntityControl: any | null = null;
+	vEntityControl: ViewportEntityControl | null = null;
 
 	private readonly _cadObjects: Map<number, IHandledCadObject> = new Map();
-	private _rootDictionary: any | null = null;
+	private _rootDictionary: CadDictionary | null = null;
 
 	constructor();
 	constructor(version: ACadVersion, createDefaults?: boolean);
@@ -73,7 +85,7 @@ export class CadDocument implements IHandledCadObject {
 			this.createDefaults();
 		}
 		if (version !== undefined && this.header != null) {
-			(this.header as any).version = version;
+			this.header.version = version;
 		}
 	}
 
@@ -405,8 +417,8 @@ export class CadDocument implements IHandledCadObject {
 		cadObject.unassignDocument();
 	}
 
-	private updateCollectionDict(dictName: string, createDictionary: boolean): { success: boolean; dictionary: any | null } {
-		let dictionary = this.rootDictionary?.getEntry?.(dictName) ?? null;
+	private updateCollectionDict(dictName: string, createDictionary: boolean): { success: boolean; dictionary: CadDictionary | null } {
+		let dictionary = this.rootDictionary?.getEntry<CadDictionary>(dictName) ?? null;
 		if (!dictionary && createDictionary && this.rootDictionary) {
 			dictionary = new CadDictionary(dictName);
 			this.rootDictionary.add(dictionary);

@@ -1,6 +1,7 @@
 import { CadObject } from '../CadObject.js';
+import type { CadDocument } from '../CadDocument.js';
 
 export interface IExtendedDataHandleReference {
 	value: number;
-	resolveReference(document: any /* CadDocument */): CadObject;
+	resolveReference(document: CadDocument): CadObject;
 }
