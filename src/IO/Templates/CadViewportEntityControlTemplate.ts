@@ -1,21 +1,10 @@
-import { CadObject } from '../../CadObject.js';
-import { ObjectType } from '../../Types/ObjectType.js';
-import { CadDocumentBuilder } from '../CadDocumentBuilder.js';
-import { CadTemplate } from './CadTemplate.js';
+import { ViewportEntityHeader } from '../../Tables/ViewportEntityHeader.js';
+import { ViewportEntityControl } from '../../Tables/Collections/ViewportEntityControl.js';
+import { CadTableTemplate } from './CadTableTemplate.js';
 
-export class CadViewportEntityControlTemplate extends CadTemplate {
-	EntryHandles: Set<number> = new Set();
 
+export class CadViewportEntityControlTemplate extends CadTableTemplate<ViewportEntityHeader> {
 	constructor() {
-		super(new VPEntityPlaceholder());
+		super(new ViewportEntityControl());
 	}
-
-	protected override build(builder: CadDocumentBuilder): void {
-		super.build(builder);
-	}
-}
-
-class VPEntityPlaceholder extends CadObject {
-	override get objectType(): ObjectType { return ObjectType.INVALID; }
-	override get subclassMarker(): string { return ''; }
 }

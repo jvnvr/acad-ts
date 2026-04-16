@@ -5,5 +5,5 @@ export class CadWriterConfiguration {
 	UpdateDimensionsInModel: boolean = false;
 	WriteXData: boolean = true;
 	WriteXRecords: boolean = true;
-	WriteShapes: boolean = false;
+	WriteShapes: boolean = true;
 }

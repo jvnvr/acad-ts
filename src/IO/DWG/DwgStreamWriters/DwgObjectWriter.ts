@@ -6,6 +6,7 @@ import { DwgSectionDefinition } from '../FileHeaders/DwgSectionDefinition.js';
 import { DwgReferenceType } from '../../../Types/DwgReferenceType.js';
 import { CRC8StreamHandler } from '../CRC8StreamHandler.js';
 import { DwgStreamWriterBase } from './DwgStreamWriterBase.js';
+import { DwgMergedStreamWriter } from './DwgMergedStreamWriter.js';
 import { IDwgStreamWriter } from './IDwgStreamWriter.js';
 import { NotificationType } from '../../NotificationEventHandler.js';
 import { ObjectType } from '../../../Types/ObjectType.js';
@@ -76,6 +77,7 @@ import { CadBody } from '../../../Entities/CadBody.js';
 import { Region } from '../../../Entities/Region.js';
 import { IPolyline } from '../../../Entities/IPolyline.js';
 import { LineType, LineTypeShapeFlags } from '../../../Tables/LineType.js';
+import { ViewportEntityHeader } from '../../../Tables/ViewportEntityHeader.js';
 
 // Tables
 import { TableEntry, StandardFlags } from '../../../Tables/TableEntry.js';
@@ -333,6 +335,8 @@ export class DwgObjectWriter extends DwgSectionIO {
 				this.writeUCS(entry);
 			} else if (entry instanceof View) {
 				this.writeView(entry);
+			} else if (entry instanceof ViewportEntityHeader) {
+				this.writeViewportEntityHeader(entry);
 			} else if (entry instanceof DimensionStyle) {
 				this.writeDimensionStyle(entry);
 			} else if (entry instanceof VPort) {
@@ -776,6 +780,18 @@ export class DwgObjectWriter extends DwgSectionIO {
 		this.registerObject(view);
 	}
 
+	private writeViewportEntityHeader(viewport: ViewportEntityHeader): void {
+		this.writeCommonNonEntityData(viewport);
+		this._writer.writeVariableText(viewport.name);
+		this.writeXrefDependantBit(viewport);
+		this._writer.writeBit(false);
+		this._writer.handleReferenceTyped(DwgReferenceType.HardPointer, 0);
+		this._writer.handleReferenceTyped(DwgReferenceType.HardPointer, 0);
+		this._writer.handleReferenceTyped(DwgReferenceType.HardPointer, viewport.blockRecord ?? 0);
+
+		this.registerObject(viewport);
+	}
+
 	private writeDimensionStyle(dimStyle: DimensionStyle): void {
 		this.writeCommonNonEntityData(dimStyle);
 		this._writer.writeVariableText(dimStyle.name);
@@ -1198,7 +1214,7 @@ export class DwgObjectWriter extends DwgSectionIO {
 			this._writer.handleReferenceTyped(DwgReferenceType.HardPointer, entity.layer);
 			const isbylayerlt = entity.lineType.name === LineType.ByLayerName;
 			this._writer.writeBit(isbylayerlt);
-			if (isbylayerlt && entity.lineType.handle !== 0) {
+			if (!isbylayerlt && entity.lineType.handle !== 0) {
 				this._writer.handleReferenceTyped(DwgReferenceType.HardPointer, entity.lineType);
 			}
 		}
@@ -1468,7 +1484,7 @@ export class DwgObjectWriter extends DwgSectionIO {
 			this.writeWall(entity);
 		} else if (entity instanceof PolyfaceMesh) {
 			this.writePolyfaceMesh(entity);
-			children.push(...entity.faces, ...entity.vertices);
+			children.push(...entity.vertices, ...entity.faces);
 			seqend = entity.vertices.Seqend;
 		} else if (entity instanceof Polyline2D) {
 			this.writePolyline2D(entity);
@@ -2530,7 +2546,7 @@ export class DwgObjectWriter extends DwgSectionIO {
 		this._writer.writeBitDouble(shape.thickness);
 		this._writer.writeBitShort(shape.shapeIndex);
 		this._writer.write3BitDouble(shape.normal);
-		this._writer.handleReferenceTyped(DwgReferenceType.HardPointer, null);
+		this._writer.handleReferenceTyped(DwgReferenceType.HardPointer, shape.shapeStyle ?? null);
 	}
 
 	private writeSolid(solid: Solid): void {
@@ -3434,12 +3450,21 @@ export class DwgObjectWriter extends DwgSectionIO {
 		this.writeRowCellStyle(tableStyle.headerCellStyle);
 	}
 
+	private writeTableStyleColor(color: Color): void {
+		if (this.R2004Pre && this._writer instanceof DwgMergedStreamWriter) {
+			this._writer.writeMergedCmColor(color);
+			return;
+		}
+
+		this._writer.writeCmColor(color);
+	}
+
 	private writeRowCellStyle(style: CellStyle): void {
 		this._writer.handleReference(style.textStyle);
 		this._writer.writeBitDouble(style.textHeight);
 		this._writer.writeBitShort(style.cellAlignment);
-		this._writer.writeCmColor(style.textColor);
-		this._writer.writeCmColor(style.backgroundColor);
+		this.writeTableStyleColor(style.textColor);
+		this.writeTableStyleColor(style.backgroundColor);
 		this._writer.writeBit(style.isFillColorOn);
 		this.writeBorderStyle(style.topBorder);
 		this.writeBorderStyle(style.horizontalInsideBorder);
@@ -3452,7 +3477,7 @@ export class DwgObjectWriter extends DwgSectionIO {
 	private writeBorderStyle(border: CellBorder): void {
 		this._writer.writeBitShort(border.lineWeight);
 		this._writer.writeBit(!border.isInvisible);
-		this._writer.writeCmColor(border.color);
+		this.writeTableStyleColor(border.color);
 	}
 
 	private writeCellStyle(style: CellStyle): void {

@@ -267,13 +267,17 @@ export class CadDocument implements IHandledCadObject {
 	public updateImageReactors(): void {
 		const reactors = Array.from(this._cadObjects.values())
 			.filter((cadObject): cadObject is ImageDefinitionReactor => cadObject instanceof ImageDefinitionReactor);
-
+		const reactorsByImage = new Map<number, ImageDefinitionReactor>();
 		for (const reactor of reactors) {
-			this.removeCadObject(reactor);
+			const imageHandle = reactor.image?.handle;
+			if (imageHandle != null && imageHandle !== 0 && !reactorsByImage.has(imageHandle)) {
+				reactorsByImage.set(imageHandle, reactor);
+			}
 		}
 
 		const rasterImages = Array.from(this._cadObjects.values())
 			.filter((cadObject): cadObject is RasterImage => cadObject instanceof RasterImage);
+		const usedReactors = new Set<ImageDefinitionReactor>();
 
 		for (const image of rasterImages) {
 			if (image.definition == null) {
@@ -281,13 +285,26 @@ export class CadDocument implements IHandledCadObject {
 				continue;
 			}
 
-			const reactor = new ImageDefinitionReactor();
+			const reactor = image.definitionReactor
+				?? reactorsByImage.get(image.handle)
+				?? new ImageDefinitionReactor();
 			reactor.owner = image;
 			reactor.image = image;
 
 			image.definitionReactor = reactor;
-			this.addCadObject(reactor);
-			image.definition.addReactor(reactor);
+			usedReactors.add(reactor);
+			if (reactor.document == null) {
+				this.addCadObject(reactor);
+			}
+			if (!image.definition.reactors.includes(reactor)) {
+				image.definition.addReactor(reactor);
+			}
+		}
+
+		for (const reactor of reactors) {
+			if (!usedReactors.has(reactor)) {
+				this.removeCadObject(reactor);
+			}
 		}
 	}
 
@@ -319,6 +336,7 @@ export class CadDocument implements IHandledCadObject {
 		else if (collection instanceof TextStylesTable) this.textStyles = collection;
 		else if (collection instanceof UCSTable) this.uCSs = collection;
 		else if (collection instanceof ViewsTable) this.views = collection;
+		else if (collection instanceof ViewportEntityControl) this.vEntityControl = collection;
 		else if (collection instanceof VPortsTable) this.vPorts = collection;
 
 		if (isIterable(collection)) {
@@ -343,6 +361,7 @@ export class CadDocument implements IHandledCadObject {
 			collection instanceof TextStylesTable ||
 			collection instanceof UCSTable ||
 			collection instanceof ViewsTable ||
+			collection instanceof ViewportEntityControl ||
 			collection instanceof VPortsTable
 		) {
 			throw new Error(`The collection ${collection.constructor?.name ?? typeof collection} cannot be removed from a document.`);

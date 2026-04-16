@@ -155,6 +155,7 @@ import { TextStylesTable } from '../../../Tables/Collections/TextStylesTable.js'
 import { LineTypesTable } from '../../../Tables/Collections/LineTypesTable.js';
 import { ViewsTable } from '../../../Tables/Collections/ViewsTable.js';
 import { UCSTable } from '../../../Tables/Collections/UCSTable.js';
+import { ViewportEntityControl } from '../../../Tables/Collections/ViewportEntityControl.js';
 import { VPortsTable } from '../../../Tables/Collections/VPortsTable.js';
 import { AppIdsTable } from '../../../Tables/Collections/AppIdsTable.js';
 import { DimensionStylesTable } from '../../../Tables/Collections/DimensionStylesTable.js';
@@ -760,7 +761,10 @@ export class DwgObjectReader extends DwgSectionIO {
         this._builder.DimensionStyles = template!.CadObject as DimensionStylesTable;
         break;
       case ObjectType.DIMSTYLE: template = this.readDimStyle(); break;
-      case ObjectType.VP_ENT_HDR_CTRL_OBJ: template = this.readViewportEntityControl(); break;
+      case ObjectType.VP_ENT_HDR_CTRL_OBJ:
+        template = this.readViewportEntityControl();
+        this._builder.DocumentToBuild.vEntityControl = template!.CadObject as ViewportEntityControl;
+        break;
       case ObjectType.VP_ENT_HDR: template = this.readViewportEntityHeader(); break;
       case ObjectType.GROUP: template = this.readGroup(); break;
       case ObjectType.MLINESTYLE: template = this.readMLineStyle(); break;

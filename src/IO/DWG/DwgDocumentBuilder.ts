@@ -34,6 +34,10 @@ export class DwgDocumentBuilder extends CadDocumentBuilder {
 
 		this.RegisterTables();
 		this.BuildTables();
+		if (this.DocumentToBuild.vEntityControl) {
+			this.DocumentToBuild.registerCollection(this.DocumentToBuild.vEntityControl);
+			this.BuildTable(this.DocumentToBuild.vEntityControl);
+		}
 		this.buildDictionaries();
 
 		super.BuildDocument();

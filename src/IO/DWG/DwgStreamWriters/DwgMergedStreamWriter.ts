@@ -131,6 +131,27 @@ export class DwgMergedStreamWriter implements IDwgStreamWriter {
 		this.main.writeCmColor(value);
 	}
 
+	writeMergedCmColor(value: Color): void {
+		this.main.writeBitShort(0);
+
+		const arr = new Uint8Array(4);
+		if (value.isTrueColor) {
+			arr[0] = value.r;
+			arr[1] = value.g;
+			arr[2] = value.b;
+			arr[3] = 0b11000010;
+		} else if (value.isByLayer) {
+			arr[3] = 0b11000000;
+		} else {
+			arr[0] = value.index & 0xFF;
+			arr[3] = 0b11000011;
+		}
+
+		const view = new DataView(arr.buffer);
+		this.main.writeBitLong(view.getInt32(0, true));
+		this.main.writeByte(0);
+	}
+
 	writeEnColor(color: Color, transparency: Transparency): void {
 		this.main.writeEnColor(color, transparency);
 	}
