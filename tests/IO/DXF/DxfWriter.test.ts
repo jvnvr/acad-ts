@@ -9,6 +9,7 @@ import { ACadVersion } from '../../../src/ACadVersion.js';
 import { Line } from '../../../src/Entities/Line.js';
 import { Point } from '../../../src/Entities/Point.js';
 import { Arc } from '../../../src/Entities/Arc.js';
+import { TextEntity } from '../../../src/Entities/TextEntity.js';
 import { Layer } from '../../../src/Tables/Layer.js';
 
 const versions = [
@@ -205,6 +206,27 @@ describe('DxfWriterTests', () => {
       const data = stream.toUint8Array();
 
       expect(containsByteSequence(data, [0x6C, 0x61, 0x79, 0x65, 0x72, 0x2D, 0x73, 0xE4, 0xF6, 0xFC])).toBe(true);
+    });
+
+    it('WriteAsciiLongTextEntityRoundtrip', () => {
+      if (version < ACadVersion.AC1015) return;
+
+      const doc = new CadDocument();
+      if (doc.header) doc.header.version = version;
+
+      const longText = 'A'.repeat(300);
+      const text = new TextEntity();
+      text.value = longText;
+      doc.entities.add(text);
+
+      const stream = new InMemoryAsciiStream();
+      const writer = new DxfWriter(stream as any, doc, false);
+      writer.write();
+
+      const reread = new DxfReader(stream.toUint8Array()).read();
+      const rereadText = [...reread.entities].find((entity): entity is TextEntity => entity instanceof TextEntity);
+
+      expect(rereadText?.value).toBe(longText);
     });
   });
 });

@@ -76,9 +76,6 @@ export class TextEntity extends Entity implements IText {
 		return this._value;
 	}
 	set value(v: string) {
-		if (v.length > 256) {
-			throw new Error(`Text length cannot be superior to 256, current: ${v.length}`);
-		}
 		this._value = v;
 	}
 

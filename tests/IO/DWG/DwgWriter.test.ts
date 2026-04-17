@@ -14,6 +14,7 @@ import { ACadVersion } from '../../../src/ACadVersion.js';
 import { Line } from '../../../src/Entities/Line.js';
 import { Point } from '../../../src/Entities/Point.js';
 import { ProxyEntity } from '../../../src/Entities/ProxyEntity.js';
+import { TextEntity } from '../../../src/Entities/TextEntity.js';
 import { DxfClass } from '../../../src/Classes/DxfClass.js';
 import { DxfSubclassMarker } from '../../../src/DxfSubclassMarker.js';
 import { DxfFileToken } from '../../../src/DxfFileToken.js';
@@ -132,6 +133,27 @@ describe('DwgWriterTests', () => {
         expect(info.keywords).toBe(doc.summaryInfo!.keywords);
         expect(info.comments).toBe(doc.summaryInfo!.comments);
       }
+    });
+
+    it('WriteLongTextEntityRoundtrip', () => {
+      if (!isSupportedVersion(version)) return;
+
+      const doc = new CadDocument();
+      if (doc.header) doc.header.version = version;
+
+      const longText = 'A'.repeat(300);
+      const text = new TextEntity();
+      text.value = longText;
+      doc.entities.add(text);
+
+      const buffer = new ArrayBuffer(1024 * 1024);
+      const writer = new DwgWriter(buffer, doc);
+      writer.write();
+
+      const reread = new DwgReader(buffer.slice(0, writer.bytesWritten)).read();
+      const rereadText = [...reread.entities].find((entity): entity is TextEntity => entity instanceof TextEntity);
+
+      expect(rereadText?.value).toBe(longText);
     });
   });
 
