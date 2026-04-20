@@ -43,8 +43,11 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "prepublishOnly": "npm run build && npm run bundle",
-    "bundle": "esbuild ./dist/index.js --format=esm --minify --platform=neutral --bundle --outfile=./dist/index-min.js"
-  
+    "bundle": "esbuild ./dist/index.js --format=esm --minify --platform=neutral --bundle --outfile=./dist/index-min.js",
+    "version:patch": "npm version patch --no-git-tag-version",
+    "version:minor": "npm version minor --no-git-tag-version",
+    "version:major": "npm version major --no-git-tag-version",
+    "validate:version": "node scripts/validate-version.js"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",
