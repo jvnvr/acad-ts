@@ -311,6 +311,7 @@ export class DwgObjectReader extends DwgSectionIO {
   }
 
   public read(): void {
+    this._handleIndex = 0;
     // Use index-based iteration instead of shift() to avoid O(n²) performance
     while (this._handleIndex < this._handles.length) {
       const handle = this._handles[this._handleIndex++];
