@@ -1,12 +1,15 @@
 {
   "name": "@jvnvr/acad-ts",
   "version": "0.0.4",
-  "description": "TypeScript library to read and write AutoCAD DWG and DXF files",
+  "description": "TypeScript library to read and write AutoCAD DWG and DXF files. Forked from https://github.com/node-projects/acad-ts",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/jvnvr/acad-ts.git"
   },
-  "author": "Jochen Kühner <jochen.kuehner@gmx.de>",
+  "author": "Vasco Rola (https://github.com/jvnvr)",
+  "contributors": [
+    "Jochen Kühner <jochen.kuehner@gmx.de>",
+  ],
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/jvnvr/acad-ts/issues"
