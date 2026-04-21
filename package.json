@@ -43,8 +43,8 @@
   },
   "scripts": {
     "build": "tsc",
-    "test": "vitest run",
-    "test:watch": "vitest",
+    "test": "NODE_OPTIONS=--max-old-space-size=4096 vitest run",
+    "test:watch": "NODE_OPTIONS=--max-old-space-size=4096 vitest",
     "typecheck:test": "tsc -p tsconfig.vitest.json --noEmit",
     "prepublishOnly": "npm run build && npm run bundle",
     "bundle": "esbuild ./dist/index.js --format=esm --minify --platform=neutral --bundle --outfile=./dist/index-min.js",
